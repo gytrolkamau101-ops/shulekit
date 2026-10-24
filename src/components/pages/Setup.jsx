@@ -24,13 +24,14 @@ export default function Setup({ school, user, term, onTermChange }) {
         ))}
       </div>
 
-      {tab === 'School identity' && <SchoolIdentityTab school={school} user={user} onSchoolUpdate={onSchoolUpdate} />}
+      {tab === 'School identity' && <SchoolIdentityTab school={school} user={user} />}
       {tab === 'Terms' && <TermsTab school={school} term={term} onTermChange={onTermChange} />}
       {tab === 'Grades & Subjects' && <GradesSubjectsTab school={school} />}
       {tab === 'Class subjects' && <ClassSubjectsTab school={school} term={term} />}
       {tab === 'Baskets' && <BasketsTab school={school} term={term} />}
       {tab === 'Grading' && <GradingTab school={school} />}
-      {tab === 'Fee Structure', 'Fee heads' && <FeeStructureTab school={school} term={term} />}
+      {tab === 'Fee Structure' && <FeeStructureTab school={school} term={term} />}
+      {tab === 'Fee heads' && <FeeHeadsTab school={school} />}
       {tab === 'Calendar' && <CalendarTab school={school} />}
       {tab === 'Payments' && <PaymentSettingsTab school={school} />}
       {tab === 'Promotion' && <PromotionTab school={school} term={term} user={user} />}
@@ -565,7 +566,7 @@ function FeeHeadsTab({ school }) {
 }
 
 
-function SchoolIdentityTab({ school, user, onSchoolUpdate }) {
+function SchoolIdentityTab({ school, user }) {
   const canEdit = ['Principal', 'Deputy Principal'].includes(user?.role)
   const [form, setForm] = useState({
     school_name: school.school_name || '',
@@ -586,7 +587,6 @@ function SchoolIdentityTab({ school, user, onSchoolUpdate }) {
     const { error } = await supabase.from('schools').update(form).eq('id', school.id)
     if (error) return setError(error.message)
     setOk('Saved — used on receipts and report cards.')
-    onSchoolUpdate?.(form)
   }
   return (
     <Card title="School identity (receipts & reports)">

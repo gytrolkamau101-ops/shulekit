@@ -4,6 +4,29 @@ import { input, btn, btnGreen, Alert, PasswordInput, Spinner } from '../componen
 import { getSettings } from '../lib/platform'
 import { payWithIntaSend } from '../lib/intasend'
 
+const DEFAULT_PLANS = {
+  currency: 'KES',
+  plans: [
+    {
+      id: 'basic',
+      name: 'Basic',
+      price: 2000,
+      period: 'per term',
+      days: 120,
+      features: ['Full school records', 'Fees, exams, attendance, report cards', 'Parent view portal', 'Up to 250 learners'],
+    },
+    {
+      id: 'premium',
+      name: 'Premium',
+      price: 4000,
+      period: 'per term',
+      days: 120,
+      features: ['Everything in Basic', 'Parent fee pay', 'Bulk WhatsApp / SMS', 'Templates + absent alerts', 'Up to 500 learners'],
+    },
+  ],
+}
+
+
 export default function Login() {
   const [mode, setMode] = useState('login')
   const [accountType, setAccountType] = useState('staff')
@@ -23,7 +46,7 @@ export default function Login() {
   const [info, setInfo] = useState('')
   const [view, setView] = useState('auth') // auth | pricing | terms | how | contact
   const [theme, setTheme] = useState({ primary: '#1d4ed8', logo_text: 'SK', bg_from: '#0f172a', bg_to: '#1e3a8a', bg_style: 'gradient' })
-  const [pricing, setPricing] = useState({ currency: 'KES', plans: [] })
+  const [pricing, setPricing] = useState(DEFAULT_PLANS)
   const [terms, setTerms] = useState(null)
   const [how, setHow] = useState(null)
   const [contacts, setContacts] = useState(null)
@@ -39,7 +62,8 @@ export default function Login() {
       try {
         const s = await getSettings(['theme', 'pricing', 'terms', 'how_it_works', 'contacts'])
         if (s.theme) setTheme((p) => ({ ...p, ...s.theme }))
-        if (s.pricing) setPricing(s.pricing)
+        if (s.pricing?.plans?.length) setPricing(s.pricing)
+        else setPricing(DEFAULT_PLANS)
         if (s.terms) setTerms(s.terms)
         if (s.how_it_works) setHow(s.how_it_works)
         if (s.contacts) setContacts(s.contacts)
@@ -437,8 +461,44 @@ export default function Login() {
           </div>
         </div>
 
+        {/* Plan tiers on main page */}
+        <div className="mt-6 sk-glass rounded-2xl p-4 space-y-3">
+          <h2 className="text-center text-lg font-black text-slate-900">Choose your plan</h2>
+          <p className="text-center text-xs text-slate-600">Subscribe for your school — pay with M-Pesa / card</p>
+          <div className="grid gap-3">
+            {(pricing.plans || DEFAULT_PLANS.plans).map((plan) => (
+              <div key={plan.id || plan.name} className="rounded-xl border border-slate-200 bg-white/90 p-3 text-left">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <p className="font-black text-slate-900">{plan.name}</p>
+                    <p className="text-xs text-slate-500">{plan.period}</p>
+                  </div>
+                  <p className="font-black text-blue-700 shrink-0">
+                    {Number(plan.price) <= 0 ? 'Free' : `${pricing.currency || 'KES'} ${Number(plan.price).toLocaleString()}`}
+                  </p>
+                </div>
+                {plan.features?.length > 0 && (
+                  <ul className="mt-2 text-xs text-slate-600 list-disc pl-4 space-y-0.5">
+                    {plan.features.slice(0, 4).map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  type="button"
+                  disabled={payBusy}
+                  className={`${btnGreen} w-full mt-3 text-sm`}
+                  onClick={() => subscribePlan(plan)}
+                >
+                  {Number(plan.price) <= 0 ? 'Start free' : 'Subscribe & pay'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs font-bold text-white/90">
-          <button type="button" className="underline" onClick={() => setView('pricing')}>Pricing</button>
+          <button type="button" className="underline" onClick={() => setView('pricing')}>All plans</button>
           <button type="button" className="underline" onClick={() => setView('how')}>How it works</button>
           <button type="button" className="underline" onClick={() => setView('terms')}>Terms</button>
           <button type="button" className="underline" onClick={() => setView('contact')}>Contact</button>

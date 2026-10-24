@@ -217,7 +217,7 @@ export default function SuperAdmin({ session }) {
         {tab === 'schools' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
             <div className="p-4 border-b border-slate-800">
-              <input className={`${input} bg-slate-950 border-slate-700 text-white`} placeholder="Filter…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Filter…" value={filter} onChange={(e) => setFilter(e.target.value)} />
             </div>
             <Scroll>
               <table className="w-full">
@@ -236,7 +236,7 @@ export default function SuperAdmin({ session }) {
                       <td className={`${td} text-white font-medium`}>{s.school_name}</td>
                       <td className={`${td} text-cyan-400 font-mono text-xs`}>{s.school_code}</td>
                       <td className={td}>
-                        <select className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-sm" value={s.plan || 'free'} onChange={(e) => setPlan(s, e.target.value)}>
+                        <select className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-sm text-white" value={s.plan || 'free'} onChange={(e) => setPlan(s, e.target.value)}>
                           <option value="free">free</option>
                           <option value="trial">trial</option>
                           <option value="basic">basic</option>
@@ -276,15 +276,26 @@ export default function SuperAdmin({ session }) {
               {cfg.publicKey ? (cfg.live ? 'LIVE key' : 'SANDBOX key') : 'No VITE_INTASEND_PUBLIC_KEY'}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <select className={`${input} bg-slate-950 border-slate-700 text-white`} value={billSchool} onChange={(e) => setBillSchool(e.target.value)}>
-                <option value="">School</option>
+              <select
+                className="w-full p-3 rounded-xl border border-slate-600 bg-slate-900 text-white"
+                value={billSchool}
+                onChange={(e) => setBillSchool(e.target.value)}
+              >
+                <option value="">School to bill</option>
                 {schools.map((s) => (
-                  <option key={s.id} value={s.id}>
+                  <option key={s.id} value={s.id} className="bg-slate-900 text-white">
                     {s.school_name}
                   </option>
                 ))}
               </select>
-              <input className={`${input} bg-slate-950 border-slate-700 text-white`} type="number" value={billAmount} onChange={(e) => setBillAmount(e.target.value)} />
+              <input
+                className="w-full p-3 rounded-xl border border-slate-600 bg-slate-900 text-white"
+                type="number"
+                min="1"
+                placeholder="Amount KES"
+                value={billAmount}
+                onChange={(e) => setBillAmount(e.target.value)}
+              />
               <button
                 type="button"
                 disabled={billing}
@@ -373,11 +384,11 @@ export default function SuperAdmin({ session }) {
             <p className="text-sm text-slate-400">Shown on the login page. Schools pick a plan and pay via IntaSend.</p>
             {(pricing.plans || []).map((plan, idx) => (
               <div key={plan.id || idx} className="grid grid-cols-2 md:grid-cols-5 gap-2 border border-slate-800 rounded-xl p-3">
-                <input className={`${input} bg-slate-950 border-slate-700 text-white`} value={plan.name || ''} onChange={(e) => updatePlanField(idx, 'name', e.target.value)} placeholder="Name" />
-                <input className={`${input} bg-slate-950 border-slate-700 text-white`} type="number" value={plan.price ?? 0} onChange={(e) => updatePlanField(idx, 'price', e.target.value)} placeholder="Price" />
-                <input className={`${input} bg-slate-950 border-slate-700 text-white`} value={plan.period || ''} onChange={(e) => updatePlanField(idx, 'period', e.target.value)} placeholder="per term" />
-                <input className={`${input} bg-slate-950 border-slate-700 text-white`} type="number" value={plan.days ?? 90} onChange={(e) => updatePlanField(idx, 'days', e.target.value)} placeholder="Days" />
-                <input className={`${input} bg-slate-950 border-slate-700 text-white`} value={plan.id || ''} onChange={(e) => updatePlanField(idx, 'id', e.target.value)} placeholder="id" />
+                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} value={plan.name || ''} onChange={(e) => updatePlanField(idx, 'name', e.target.value)} placeholder="Name" />
+                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} type="number" value={plan.price ?? 0} onChange={(e) => updatePlanField(idx, 'price', e.target.value)} placeholder="Price" />
+                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} value={plan.period || ''} onChange={(e) => updatePlanField(idx, 'period', e.target.value)} placeholder="per term" />
+                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} type="number" value={plan.days ?? 90} onChange={(e) => updatePlanField(idx, 'days', e.target.value)} placeholder="Days" />
+                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} value={plan.id || ''} onChange={(e) => updatePlanField(idx, 'id', e.target.value)} placeholder="id" />
               </div>
             ))}
             <button
@@ -407,7 +418,7 @@ export default function SuperAdmin({ session }) {
               <div key={block.key} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">
                 <h2 className="font-black">{block.label}</h2>
                 <input
-                  className={`${input} bg-slate-950 border-slate-700 text-white`}
+                  className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`}
                   value={block.state.title || ''}
                   onChange={(e) => block.set({ ...block.state, title: e.target.value })}
                 />
@@ -423,10 +434,10 @@ export default function SuperAdmin({ session }) {
             ))}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">
               <h2 className="font-black">Contacts</h2>
-              <input className={`${input} bg-slate-950 border-slate-700 text-white`} placeholder="Email" value={contacts.email || ''} onChange={(e) => setContacts({ ...contacts, email: e.target.value })} />
-              <input className={`${input} bg-slate-950 border-slate-700 text-white`} placeholder="Phone" value={contacts.phone || ''} onChange={(e) => setContacts({ ...contacts, phone: e.target.value })} />
-              <input className={`${input} bg-slate-950 border-slate-700 text-white`} placeholder="WhatsApp" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
-              <input className={`${input} bg-slate-950 border-slate-700 text-white`} placeholder="Address" value={contacts.address || ''} onChange={(e) => setContacts({ ...contacts, address: e.target.value })} />
+              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Email" value={contacts.email || ''} onChange={(e) => setContacts({ ...contacts, email: e.target.value })} />
+              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Phone" value={contacts.phone || ''} onChange={(e) => setContacts({ ...contacts, phone: e.target.value })} />
+              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="WhatsApp" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
+              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Address" value={contacts.address || ''} onChange={(e) => setContacts({ ...contacts, address: e.target.value })} />
               <button type="button" disabled={savingCms} className={btnGreen} onClick={() => saveCms('contacts', contacts)}>
                 Save contacts
               </button>

@@ -11,7 +11,7 @@
 const PLAN_DAYS = { basic: 120, premium: 120, trial: 90 }
 const PLAN_CAPS = { basic: 250, premium: 500, trial: 250 }
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   if (event.httpMethod === 'GET') {
     return { statusCode: 200, body: 'ShuleKit IntaSend webhook OK' }
   }
