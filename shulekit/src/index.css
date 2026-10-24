@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+:root {
+  --sk-primary: #1d4ed8;
+  --sk-primary-dark: #1e3a8a;
+  --sk-accent: #06b6d4;
+  --sk-success: #059669;
+  --sk-danger: #dc2626;
+  --sk-surface: #f1f5f9;
+  --sk-radius: 1rem;
+  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--sk-surface);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Soft animated gradient mesh background */
+.sk-mesh {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(59, 130, 246, 0.35), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 90% 10%, rgba(6, 182, 212, 0.28), transparent 45%),
+    radial-gradient(ellipse 60% 50% at 50% 90%, rgba(99, 102, 241, 0.22), transparent 50%),
+    linear-gradient(160deg, #0f172a 0%, #1e3a8a 45%, #0e7490 100%);
+}
+
+.sk-mesh-light {
+  background:
+    radial-gradient(ellipse 70% 50% at 0% 0%, rgba(59, 130, 246, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(6, 182, 212, 0.1), transparent 45%),
+    linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.sk-glass {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 4px 6px -1px rgba(15, 23, 42, 0.06),
+    0 20px 40px -12px rgba(15, 23, 42, 0.15);
+}
+
+.sk-card {
+  background: #fff;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px -8px rgba(15, 23, 42, 0.08);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.sk-card:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08), 0 16px 32px -12px rgba(15, 23, 42, 0.1);
+}
+
+@keyframes sk-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes sk-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sk-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes sk-slide-right {
+  from { transform: translateX(110%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes sk-spin {
+  to { transform: rotate(360deg); }
+}
+
+.sk-animate-in {
+  animation: sk-fade-up 0.4s ease-out both;
+}
+.sk-modal-in {
+  animation: sk-scale-in 0.22s ease-out both;
+}
+.sk-backdrop-in {
+  animation: sk-fade-in 0.2s ease-out both;
+}
+.sk-toast-in {
+  animation: sk-slide-right 0.3s ease-out both;
+}
+
+.sk-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sk-spin 0.7s linear infinite;
+}
+.sk-spinner-dark {
+  border-color: rgba(37, 99, 235, 0.25);
+  border-top-color: #2563eb;
+}
+
+/* Focus rings */
+input:focus, select:focus, textarea:focus, button:focus-visible {
+  outline: none;
+}
+
+/* Scrollbar subtle */
+.sk-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.sk-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+
+/* Table polish */
+.sk-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
