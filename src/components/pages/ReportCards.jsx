@@ -77,7 +77,7 @@ export default function ReportCards({ school, term }) {
         return `<tr><td>${n}</td><td>${x ? x.marks : '—'}</td><td>${x?.grade || '—'}</td></tr>`
       }).join('')
       return `<section class="card">
-        <header><h1>${school.school_name || 'School'}</h1><p>ShuleKit · Report Card</p></header>
+        <header><h1>${school.school_name || 'School'}</h1><p>${school.po_box ? 'P.O. Box ' + school.po_box : ''}${school.physical_address ? ' · ' + school.physical_address : ''}</p><p>${school.motto || 'ShuleKit · Report Card'}</p></header>
         <h2>${r.student.first_name} ${r.student.last_name}</h2>
         <p>Adm: ${r.student.admission_no} · Class: ${gradeName} · ${examName}</p>
         <p>Term ${term.term}, ${term.year} · Position: ${i + 1} of ${rows.length}</p>

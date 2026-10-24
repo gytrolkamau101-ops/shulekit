@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { input, btn, Alert, PasswordInput, Spinner } from '../components/ui'
+import { input, btn, btnGreen, Alert, PasswordInput, Spinner } from '../components/ui'
+import { getSettings } from '../lib/platform'
+import { payWithIntaSend } from '../lib/intasend'
 
 export default function Login() {
   const [mode, setMode] = useState('login')
@@ -19,10 +21,60 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+  const [view, setView] = useState('auth') // auth | pricing | terms | how | contact
+  const [theme, setTheme] = useState({ primary: '#1d4ed8', logo_text: 'SK', bg_from: '#0f172a', bg_to: '#1e3a8a', bg_style: 'gradient' })
+  const [pricing, setPricing] = useState({ currency: 'KES', plans: [] })
+  const [terms, setTerms] = useState(null)
+  const [how, setHow] = useState(null)
+  const [contacts, setContacts] = useState(null)
+  const [payBusy, setPayBusy] = useState(false)
 
   const reset = () => {
     setError('')
     setInfo('')
+  }
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const s = await getSettings(['theme', 'pricing', 'terms', 'how_it_works', 'contacts'])
+        if (s.theme) setTheme((p) => ({ ...p, ...s.theme }))
+        if (s.pricing) setPricing(s.pricing)
+        if (s.terms) setTerms(s.terms)
+        if (s.how_it_works) setHow(s.how_it_works)
+        if (s.contacts) setContacts(s.contacts)
+      } catch (_) {}
+    })()
+  }, [])
+
+  const subscribePlan = async (plan) => {
+    setPayBusy(true)
+    setError('')
+    try {
+      if (!plan.price || Number(plan.price) <= 0) {
+        setInfo(`${plan.name} is free — register your school, then start using ShuleKit.`)
+        setView('auth')
+        setMode('register')
+        setRegType('new')
+        setPayBusy(false)
+        return
+      }
+      await payWithIntaSend({
+        amount: Number(plan.price),
+        email: email || undefined,
+        apiRef: `plan-${plan.id}-pending-${Date.now()}`,
+        comment: `ShuleKit ${plan.name}`,
+        onComplete: () => {
+          setInfo(`Payment received for ${plan.name}. Register your school (or log in) — Super Admin will confirm plan if webhook is not yet wired.`)
+          setView('auth')
+          setMode('register')
+          setRegType('new')
+        },
+      })
+    } catch (e) {
+      setError(e?.message || 'Payment could not start')
+    }
+    setPayBusy(false)
   }
 
   const checkCode = async () => {
@@ -114,16 +166,91 @@ export default function Login() {
     else setInfo('Password reset link sent. Check your email.')
   }
 
+  const bgStyle =
+    theme.bg_style === 'solid'
+      ? { background: theme.bg_from || '#0f172a' }
+      : { background: `linear-gradient(135deg, ${theme.bg_from || '#0f172a'}, ${theme.bg_to || '#1e3a8a'})` }
+
+  if (view !== 'auth') {
+    const page =
+      view === 'pricing'
+        ? null
+        : view === 'terms'
+          ? terms
+          : view === 'how'
+            ? how
+            : contacts
+    return (
+      <div className="min-h-screen flex flex-col items-center p-4" style={bgStyle}>
+        <div className="w-full max-w-lg sk-glass rounded-2xl p-6 my-8 space-y-4">
+          <button type="button" className="text-sm font-bold text-blue-700" onClick={() => setView('auth')}>
+            ← Back
+          </button>
+          {view === 'pricing' ? (
+            <>
+              <h2 className="text-2xl font-black text-slate-900">Choose a plan</h2>
+              <p className="text-sm text-slate-600">Pay with M-Pesa / card via IntaSend. After payment, register or log in as Principal.</p>
+              <Alert>{error}</Alert>
+              <Alert kind="ok">{info}</Alert>
+              <div className="space-y-3">
+                {(pricing.plans || []).map((plan) => (
+                  <div key={plan.id || plan.name} className="border border-slate-200 rounded-xl p-4">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <p className="font-black text-lg">{plan.name}</p>
+                        <p className="text-sm text-slate-500">{plan.period}</p>
+                      </div>
+                      <p className="font-black text-blue-700">
+                        {Number(plan.price) <= 0 ? 'Free' : `${pricing.currency || 'KES'} ${Number(plan.price).toLocaleString()}`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={payBusy}
+                      className={`${btnGreen} w-full mt-3`}
+                      onClick={() => subscribePlan(plan)}
+                    >
+                      {Number(plan.price) <= 0 ? 'Start free' : 'Pay & subscribe'}
+                    </button>
+                  </div>
+                ))}
+                {!(pricing.plans || []).length && (
+                  <p className="text-sm text-slate-500">Pricing not configured yet. Super Admin → Pricing.</p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-black text-slate-900">{page?.title || view}</h2>
+              {view === 'contact' ? (
+                <div className="text-sm text-slate-700 space-y-2">
+                  <p>Email: {contacts?.email || '—'}</p>
+                  <p>Phone: {contacts?.phone || '—'}</p>
+                  <p>WhatsApp: {contacts?.whatsapp || '—'}</p>
+                  <p>Address: {contacts?.address || '—'}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{page?.body || 'Content coming soon.'}</p>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen sk-mesh flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* decorative blobs */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden" style={bgStyle}>
       <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-cyan-400/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-16 w-96 h-96 rounded-full bg-blue-500/25 blur-3xl" />
 
       <div className="relative w-full max-w-md sk-animate-in">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/15 border border-white/25 shadow-xl mb-4 backdrop-blur-md">
-            <span className="text-3xl font-black text-white tracking-tighter">SK</span>
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-xl mb-4 text-white font-black text-2xl"
+            style={{ background: theme.primary || '#1d4ed8' }}
+          >
+            {theme.logo_text || 'SK'}
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-sm">ShuleKit</h1>
           <p className="text-cyan-100/90 mt-1 text-sm font-medium">by BigDataKE Technologies</p>
@@ -310,7 +437,13 @@ export default function Login() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-white/70 font-medium">
+        <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs font-bold text-white/90">
+          <button type="button" className="underline" onClick={() => setView('pricing')}>Pricing</button>
+          <button type="button" className="underline" onClick={() => setView('how')}>How it works</button>
+          <button type="button" className="underline" onClick={() => setView('terms')}>Terms</button>
+          <button type="button" className="underline" onClick={() => setView('contact')}>Contact</button>
+        </div>
+        <p className="mt-4 text-center text-xs text-white/70 font-medium">
           © BigDataKE Technologies. All rights reserved.
         </p>
       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { Card, Scroll, Alert, th, td, fmt, btn, btnGreen, Spinner } from '../components/ui'
 import { payWithIntaSend } from '../lib/intasend'
+import { planEntitlements } from '../lib/plans'
 
 export default function ParentPortal({ session }) {
   const [parent, setParent] = useState(null)
@@ -259,7 +260,7 @@ function ChildDetail({ student, schoolId, session }) {
                 </p>
               </div>
             </div>
-            {balance > 0 && (
+            {balance > 0 && planEntitlements({ plan: school?.plan || schoolPlan, plan_expires_at: school?.plan_expires_at }).parentPay && (
               <button
                 type="button"
                 className={`${btnGreen} mt-4 w-full`}

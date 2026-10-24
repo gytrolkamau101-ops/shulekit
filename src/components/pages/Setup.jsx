@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, PageTitle, input, btn, btnGreen, btnGhost, th, td, fmt } from '../ui'
 import { logAudit } from '../../lib/audit'
 
-const TABS = ['Terms', 'Grades & Subjects', 'Class subjects', 'Baskets', 'Grading', 'Fee Structure', 'Fee heads', 'Payments', 'Promotion', 'Calendar', 'Staff', 'Parents', 'Audit']
+const TABS = ['School identity', 'Terms', 'Grades & Subjects', 'Class subjects', 'Baskets', 'Grading', 'Fee Structure', 'Fee heads', 'Payments', 'Promotion', 'Calendar', 'Staff', 'Parents', 'Audit']
 
 export default function Setup({ school, user, term, onTermChange }) {
   const [tab, setTab] = useState('Terms')
@@ -24,6 +24,7 @@ export default function Setup({ school, user, term, onTermChange }) {
         ))}
       </div>
 
+      {tab === 'School identity' && <SchoolIdentityTab school={school} user={user} onSchoolUpdate={onSchoolUpdate} />}
       {tab === 'Terms' && <TermsTab school={school} term={term} onTermChange={onTermChange} />}
       {tab === 'Grades & Subjects' && <GradesSubjectsTab school={school} />}
       {tab === 'Class subjects' && <ClassSubjectsTab school={school} term={term} />}
@@ -559,6 +560,48 @@ function FeeHeadsTab({ school }) {
       <ul className="mt-3 text-sm space-y-1">
         {heads.map((h) => <li key={h.id}>{h.head_name}</li>)}
       </ul>
+    </Card>
+  )
+}
+
+
+function SchoolIdentityTab({ school, user, onSchoolUpdate }) {
+  const canEdit = ['Principal', 'Deputy Principal'].includes(user?.role)
+  const [form, setForm] = useState({
+    school_name: school.school_name || '',
+    logo_url: school.logo_url || '',
+    po_box: school.po_box || '',
+    physical_address: school.physical_address || '',
+    motto: school.motto || '',
+    phone: school.phone || '',
+    email: school.email || '',
+  })
+  const [error, setError] = useState('')
+  const [ok, setOk] = useState('')
+  const save = async (e) => {
+    e.preventDefault()
+    setError('')
+    setOk('')
+    if (!canEdit) return setError('Only Principal / Deputy can edit school identity.')
+    const { error } = await supabase.from('schools').update(form).eq('id', school.id)
+    if (error) return setError(error.message)
+    setOk('Saved — used on receipts and report cards.')
+    onSchoolUpdate?.(form)
+  }
+  return (
+    <Card title="School identity (receipts & reports)">
+      <form onSubmit={save} className="space-y-3">
+        <input className={input} placeholder="School name" value={form.school_name} onChange={(e) => setForm({ ...form, school_name: e.target.value })} required disabled={!canEdit} />
+        <input className={input} placeholder="Logo URL (https://…)" value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} disabled={!canEdit} />
+        <input className={input} placeholder="P.O. Box" value={form.po_box} onChange={(e) => setForm({ ...form, po_box: e.target.value })} disabled={!canEdit} />
+        <input className={input} placeholder="Physical address" value={form.physical_address} onChange={(e) => setForm({ ...form, physical_address: e.target.value })} disabled={!canEdit} />
+        <input className={input} placeholder="Motto" value={form.motto} onChange={(e) => setForm({ ...form, motto: e.target.value })} disabled={!canEdit} />
+        <input className={input} placeholder="School phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={!canEdit} />
+        <input className={input} placeholder="School email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={!canEdit} />
+        <Alert>{error}</Alert>
+        <Alert kind="ok">{ok}</Alert>
+        {canEdit && <button className={btnGreen}>Save identity</button>}
+      </form>
     </Card>
   )
 }

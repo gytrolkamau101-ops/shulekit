@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
+import { planEntitlements } from '../../lib/plans'
 import { isOnline, enqueue } from '../../lib/offline'
 import { toast } from '../ui'
 import { Card, Scroll, Alert, NeedTerm, PageTitle, input, btn, th, td } from '../ui'
@@ -73,7 +74,13 @@ export default function Attendance({ school, term, user }) {
   }, [marks])
 
 
+  const ent = planEntitlements(school)
   const notifyAbsentParents = () => {
+    if (!ent.notifyAbsent) {
+      setError('Absent parent alerts are Premium. Upgrade to message absentees in bulk.')
+      return
+    }
+
     const absent = students.filter((s) => marks[s.id] === 'Absent' && s.parent_phone)
     if (!absent.length) {
       setError('No absentees with parent phone numbers.')
@@ -214,7 +221,7 @@ export default function Attendance({ school, term, user }) {
                       onClick={notifyAbsentParents}
                       className="px-4 py-2 rounded-xl bg-amber-600 text-white text-sm font-bold"
                     >
-                      Notify absent (WhatsApp)
+                      {ent.notifyAbsent ? 'Notify absent (WhatsApp)' : 'Notify absent (Premium)'}
                     </button>
                   </div>
                 ) : (
