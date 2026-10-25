@@ -1,17 +1,14 @@
 /**
- * IntaSend webhook — set endpoint to:
+ * IntaSend webhook — endpoint:
  *   https://YOUR-SITE.netlify.app/.netlify/functions/intasend-webhook
  *
- * Env (Netlify → Site settings → Environment variables):
- *   INTASEND_WEBHOOK_CHALLENGE = the Challenge string from IntaSend form
- *   SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY  (service role — never in Vite)
+ * Env: INTASEND_WEBHOOK_CHALLENGE, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 
 const PLAN_DAYS = { basic: 120, premium: 120, trial: 90 }
 const PLAN_CAPS = { basic: 250, premium: 500, trial: 250 }
 
-exports.handler = async (event) => {
+export async function handler(event) {
   if (event.httpMethod === 'GET') {
     return { statusCode: 200, body: 'ShuleKit IntaSend webhook OK' }
   }
@@ -27,7 +24,6 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: 'Invalid JSON' }
   }
 
-  // IntaSend sends challenge in body or header depending on version
   const incoming =
     body.challenge ||
     event.headers['x-intasend-challenge'] ||
@@ -42,7 +38,6 @@ exports.handler = async (event) => {
   const amount = body.value || body.amount || body.invoice?.amount || null
   const invoiceId = body.invoice_id || body.invoice?.id || null
 
-  // api_ref formats: plan-{planId}-{schoolId}-{ts} OR plan-{planId}-{ts}
   let planId = 'basic'
   let schoolId = null
   if (apiRef.startsWith('plan-')) {
@@ -61,7 +56,6 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: 'Server missing SUPABASE_URL or SERVICE_ROLE_KEY' }
   }
 
-  // Log event
   await fetch(`${url}/rest/v1/subscription_events`, {
     method: 'POST',
     headers: {

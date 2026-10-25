@@ -1,6 +1,6 @@
 /** M-Pesa STK Push — requires INTASEND_SECRET_KEY on Netlify only */
 
-exports.handler = async (event) => {
+export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: cors(), body: '' }
   }
