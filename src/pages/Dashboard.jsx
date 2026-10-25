@@ -18,6 +18,7 @@ import Circulars from '../components/pages/Circulars'
 import Admissions from '../components/pages/Admissions'
 import { flushQueue, queueCount, isOnline } from '../lib/offline'
 import { toast } from '../components/ui'
+import PremiumGate from '../components/PremiumGate'
 import { btn } from '../components/ui'
 
 export default function Dashboard({ session }) {
@@ -156,7 +157,7 @@ export default function Dashboard({ session }) {
 
   return (
     <div className="flex h-screen sk-mesh-light">
-      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} page={page} onPage={go} role={user.role} />
+      <Sidebar school={school} open={menuOpen} onClose={() => setMenuOpen(false)} page={page} onPage={go} role={user.role} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar school={school} user={user} term={term} onLogout={logout} onMenu={() => setMenuOpen(true)} />
         <main className="flex-1 overflow-auto p-4 md:p-6 sk-animate-in">
@@ -164,14 +165,14 @@ export default function Dashboard({ session }) {
           {page === 'students' && <Students {...props} />}
           {page === 'finance' && <StudentFinance {...props} />}
           {page === 'exams' && <Exams {...props} />}
-          {page === 'attendance' && <Attendance {...props} />}
+          {page === 'attendance' && <PremiumGate school={school} moduleName="attendance"><Attendance {...props} /></PremiumGate>}
           {page === 'school-finance' && <SchoolFinance {...props} />}
           {page === 'resources' && <Resources {...props} />}
-          {page === 'timetable' && <Timetable {...props} />}
+          {page === 'timetable' && <PremiumGate school={school} moduleName="timetable"><Timetable {...props} /></PremiumGate>}
           {page === 'reports' && <ReportCards {...props} />}
-          {page === 'messages' && <Messaging {...props} />}
-          {page === 'import' && <ImportCenter {...props} />}
-          {page === 'circulars' && <Circulars {...props} />}
+          {page === 'messages' && <PremiumGate school={school} moduleName="messages"><Messaging {...props} /></PremiumGate>}
+          {page === 'import' && <PremiumGate school={school} moduleName="import"><ImportCenter {...props} /></PremiumGate>}
+          {page === 'circulars' && <PremiumGate school={school} moduleName="circulars"><Circulars {...props} /></PremiumGate>}
           {page === 'admissions' && <Admissions {...props} />}
           {page === 'setup' && <Setup {...props} onTermChange={() => loadTerm(school.id)} />}
         </main>

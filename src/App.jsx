@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import Login from './pages/Login'
+import ErrorBoundary from './components/ErrorBoundary'
 import AccountGate from './pages/AccountGate'
 import { input, btn, Alert, ToastHost, PasswordInput, Spinner } from './components/ui'
 
@@ -67,9 +68,9 @@ export default function App() {
 
   if (session && recovering) return <ResetPassword onDone={() => setRecovering(false)} />
   return (
-    <>
+    <ErrorBoundary>
       <ToastHost />
       {session ? <AccountGate session={session} /> : <Login />}
-    </>
+    </ErrorBoundary>
   )
 }

@@ -1,23 +1,25 @@
 import { ALL_STAFF, ADMIN, FINANCE_ROLES, EXAM_ROLES } from '../lib/roles'
+import { PREMIUM_MODULES, canAccessModule } from '../lib/plans'
 
+/** Premium modules listed first (amber), then Basic modules */
 const ITEMS = [
+  { id: 'messages', label: 'Messages', icon: '✉', roles: [...ADMIN, 'Secretary'], premium: true },
+  { id: 'attendance', label: 'Attendance', icon: '✓', roles: ALL_STAFF, premium: true },
+  { id: 'timetable', label: 'Timetable', icon: '▦', roles: ALL_STAFF, premium: true },
+  { id: 'circulars', label: 'Circulars', icon: '✉', roles: ALL_STAFF, premium: true },
+  { id: 'import', label: 'Import centre', icon: '⇩', roles: [...ADMIN, 'Secretary'], premium: true },
   { id: 'dashboard', label: 'Dashboard', icon: '▣', roles: ALL_STAFF },
   { id: 'students', label: 'Students', icon: '◎', roles: ALL_STAFF },
-  { id: 'import', label: 'Import centre', icon: '⇩', roles: [...ADMIN, 'Secretary'] },
   { id: 'admissions', label: 'Admissions', icon: '＋', roles: [...ADMIN, 'Secretary'] },
-  { id: 'circulars', label: 'Circulars', icon: '✉', roles: ALL_STAFF },
   { id: 'finance', label: 'Student Finance', icon: '₵', roles: FINANCE_ROLES },
   { id: 'exams', label: 'Examinations', icon: '✎', roles: EXAM_ROLES },
   { id: 'reports', label: 'Report Cards', icon: '☰', roles: EXAM_ROLES },
-  { id: 'attendance', label: 'Attendance', icon: '✓', roles: ALL_STAFF },
-  { id: 'timetable', label: 'Timetable', icon: '▦', roles: ALL_STAFF },
   { id: 'school-finance', label: 'School Finance', icon: '◈', roles: ADMIN },
   { id: 'resources', label: 'Resources', icon: '▤', roles: [...ADMIN, 'Secretary'] },
-  { id: 'messages', label: 'Messages', icon: '✉', roles: [...ADMIN, 'Secretary'] },
   { id: 'setup', label: 'School Setup', icon: '⚙', roles: ADMIN },
 ]
 
-export default function Sidebar({ open, onClose, page, onPage, role }) {
+export default function Sidebar({ open, onClose, page, onPage, role, school }) {
   return (
     <>
       {open && (
@@ -40,7 +42,32 @@ export default function Sidebar({ open, onClose, page, onPage, role }) {
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto sk-scroll">
-          {ITEMS.filter((i) => i.roles.includes(role)).map((i) => {
+          <p className="px-2 pt-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400/90">Premium</p>
+          {ITEMS.filter((i) => i.premium && i.roles.includes(role)).map((i) => {
+            const active = page === i.id
+            const unlocked = canAccessModule(school, i.id)
+            return (
+              <button
+                key={i.id}
+                onClick={() => onPage(i.id)}
+                className={`w-full flex items-center gap-3 text-left px-3.5 py-3 rounded-xl font-semibold text-sm transition ${
+                  active
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
+                    : unlocked
+                      ? 'text-amber-100 bg-amber-500/10 hover:bg-amber-500/20'
+                      : 'text-amber-200/50 bg-amber-500/5 hover:bg-amber-500/10'
+                }`}
+              >
+                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${active ? 'bg-white/20' : 'bg-amber-400/20'}`}>
+                  {i.icon}
+                </span>
+                <span className="flex-1">{i.label}</span>
+                {!unlocked && <span className="text-[9px] font-bold uppercase text-amber-300/80">Pro</span>}
+              </button>
+            )
+          })}
+          <p className="px-2 pt-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Core</p>
+          {ITEMS.filter((i) => !i.premium && i.roles.includes(role)).map((i) => {
             const active = page === i.id
             return (
               <button

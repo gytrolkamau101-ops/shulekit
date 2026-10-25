@@ -4,6 +4,9 @@ import { payWithIntaSend, intasendConfig } from '../lib/intasend'
 import { getSetting, saveSetting } from '../lib/platform'
 import { Card, Scroll, Alert, input, btn, btnGreen, th, td, toast, Spinner } from '../components/ui'
 
+const saField =
+  'w-full p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
+
 const TABS = ['overview', 'schools', 'billing', 'theme', 'pricing', 'pages', 'audit']
 
 export default function SuperAdmin({ session }) {
@@ -15,6 +18,7 @@ export default function SuperAdmin({ session }) {
   const [billSchool, setBillSchool] = useState('')
   const [billAmount, setBillAmount] = useState('5000')
   const [billing, setBilling] = useState(false)
+  const [billPhone, setBillPhone] = useState('')
   const [filter, setFilter] = useState('')
   const [tab, setTab] = useState('overview')
   const [theme, setTheme] = useState({ primary: '#1d4ed8', accent: '#06b6d4', bg_style: 'gradient', bg_from: '#0f172a', bg_to: '#1e3a8a', logo_text: 'SK' })
@@ -217,7 +221,7 @@ export default function SuperAdmin({ session }) {
         {tab === 'schools' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
             <div className="p-4 border-b border-slate-800">
-              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Filter…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+              <input className={saField} placeholder="Filter…" value={filter} onChange={(e) => setFilter(e.target.value)} />
             </div>
             <Scroll>
               <table className="w-full">
@@ -277,7 +281,7 @@ export default function SuperAdmin({ session }) {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <select
-                className="w-full p-3 rounded-xl border border-slate-600 bg-slate-900 text-white"
+                className={saField}
                 value={billSchool}
                 onChange={(e) => setBillSchool(e.target.value)}
               >
@@ -289,12 +293,18 @@ export default function SuperAdmin({ session }) {
                 ))}
               </select>
               <input
-                className="w-full p-3 rounded-xl border border-slate-600 bg-slate-900 text-white"
+                className={saField}
                 type="number"
                 min="1"
                 placeholder="Amount KES"
                 value={billAmount}
                 onChange={(e) => setBillAmount(e.target.value)}
+              />
+              <input
+                className={saField}
+                placeholder="M-Pesa 07… (STK)"
+                value={billPhone}
+                onChange={(e) => setBillPhone(e.target.value)}
               />
               <button
                 type="button"
@@ -307,6 +317,8 @@ export default function SuperAdmin({ session }) {
                     await payWithIntaSend({
                       amount: Number(billAmount) || 5000,
                       email: session.user.email,
+                      phone: billPhone,
+                      preferStk: true,
                       apiRef: `plan-basic-${billSchool}-${Date.now()}`,
                       comment: 'ShuleKit subscription',
                       onComplete: async () => {
@@ -384,11 +396,11 @@ export default function SuperAdmin({ session }) {
             <p className="text-sm text-slate-400">Shown on the login page. Schools pick a plan and pay via IntaSend.</p>
             {(pricing.plans || []).map((plan, idx) => (
               <div key={plan.id || idx} className="grid grid-cols-2 md:grid-cols-5 gap-2 border border-slate-800 rounded-xl p-3">
-                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} value={plan.name || ''} onChange={(e) => updatePlanField(idx, 'name', e.target.value)} placeholder="Name" />
-                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} type="number" value={plan.price ?? 0} onChange={(e) => updatePlanField(idx, 'price', e.target.value)} placeholder="Price" />
-                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} value={plan.period || ''} onChange={(e) => updatePlanField(idx, 'period', e.target.value)} placeholder="per term" />
-                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} type="number" value={plan.days ?? 90} onChange={(e) => updatePlanField(idx, 'days', e.target.value)} placeholder="Days" />
-                <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} value={plan.id || ''} onChange={(e) => updatePlanField(idx, 'id', e.target.value)} placeholder="id" />
+                <input className={saField} value={plan.name || ''} onChange={(e) => updatePlanField(idx, 'name', e.target.value)} placeholder="Name" />
+                <input className={saField} type="number" value={plan.price ?? 0} onChange={(e) => updatePlanField(idx, 'price', e.target.value)} placeholder="Price" />
+                <input className={saField} value={plan.period || ''} onChange={(e) => updatePlanField(idx, 'period', e.target.value)} placeholder="per term" />
+                <input className={saField} type="number" value={plan.days ?? 90} onChange={(e) => updatePlanField(idx, 'days', e.target.value)} placeholder="Days" />
+                <input className={saField} value={plan.id || ''} onChange={(e) => updatePlanField(idx, 'id', e.target.value)} placeholder="id" />
               </div>
             ))}
             <button
@@ -418,7 +430,7 @@ export default function SuperAdmin({ session }) {
               <div key={block.key} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">
                 <h2 className="font-black">{block.label}</h2>
                 <input
-                  className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`}
+                  className={saField}
                   value={block.state.title || ''}
                   onChange={(e) => block.set({ ...block.state, title: e.target.value })}
                 />
@@ -434,10 +446,10 @@ export default function SuperAdmin({ session }) {
             ))}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">
               <h2 className="font-black">Contacts</h2>
-              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Email" value={contacts.email || ''} onChange={(e) => setContacts({ ...contacts, email: e.target.value })} />
-              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Phone" value={contacts.phone || ''} onChange={(e) => setContacts({ ...contacts, phone: e.target.value })} />
-              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="WhatsApp" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
-              <input className={`${input} !bg-slate-900 !border-slate-600 !text-white placeholder:!text-slate-400`} placeholder="Address" value={contacts.address || ''} onChange={(e) => setContacts({ ...contacts, address: e.target.value })} />
+              <input className={saField} placeholder="Email" value={contacts.email || ''} onChange={(e) => setContacts({ ...contacts, email: e.target.value })} />
+              <input className={saField} placeholder="Phone" value={contacts.phone || ''} onChange={(e) => setContacts({ ...contacts, phone: e.target.value })} />
+              <input className={saField} placeholder="WhatsApp" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
+              <input className={saField} placeholder="Address" value={contacts.address || ''} onChange={(e) => setContacts({ ...contacts, address: e.target.value })} />
               <button type="button" disabled={savingCms} className={btnGreen} onClick={() => saveCms('contacts', contacts)}>
                 Save contacts
               </button>

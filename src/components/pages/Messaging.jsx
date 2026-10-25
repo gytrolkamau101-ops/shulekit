@@ -179,17 +179,6 @@ export default function Messaging({ school, user, term }) {
     )
   }
 
-  if (!ent.bulkMessaging && !ent.messageTemplates) {
-    return (
-      <div className="space-y-4">
-        <PageTitle>Parent messages</PageTitle>
-        <Alert kind="warn">
-          Bulk parent messaging is a <strong>Premium</strong> feature (KES 4,000/term). Basic can still record fees and show defaulters.
-          Upgrade under Login → Pricing or ask the platform admin.
-        </Alert>
-      </div>
-    )
-  }
 
 
   return (

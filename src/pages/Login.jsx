@@ -3,28 +3,8 @@ import { supabase } from '../supabaseClient'
 import { input, btn, btnGreen, Alert, PasswordInput, Spinner } from '../components/ui'
 import { getSettings } from '../lib/platform'
 import { payWithIntaSend } from '../lib/intasend'
+import { DEFAULT_PLANS } from '../lib/plans'
 
-const DEFAULT_PLANS = {
-  currency: 'KES',
-  plans: [
-    {
-      id: 'basic',
-      name: 'Basic',
-      price: 2000,
-      period: 'per term',
-      days: 120,
-      features: ['Full school records', 'Fees, exams, attendance, report cards', 'Parent view portal', 'Up to 250 learners'],
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      price: 4000,
-      period: 'per term',
-      days: 120,
-      features: ['Everything in Basic', 'Parent fee pay', 'Bulk WhatsApp / SMS', 'Templates + absent alerts', 'Up to 500 learners'],
-    },
-  ],
-}
 
 
 export default function Login() {
@@ -51,6 +31,7 @@ export default function Login() {
   const [how, setHow] = useState(null)
   const [contacts, setContacts] = useState(null)
   const [payBusy, setPayBusy] = useState(false)
+  const [payPhone, setPayPhone] = useState('')
 
   const reset = () => {
     setError('')
@@ -86,6 +67,8 @@ export default function Login() {
       await payWithIntaSend({
         amount: Number(plan.price),
         email: email || undefined,
+        phone: payPhone || undefined,
+        preferStk: true,
         apiRef: `plan-${plan.id}-pending-${Date.now()}`,
         comment: `ShuleKit ${plan.name}`,
         onComplete: () => {
@@ -466,34 +449,63 @@ export default function Login() {
           <h2 className="text-center text-lg font-black text-slate-900">Choose your plan</h2>
           <p className="text-center text-xs text-slate-600">Subscribe for your school — pay with M-Pesa / card</p>
           <div className="grid gap-3">
-            {(pricing.plans || DEFAULT_PLANS.plans).map((plan) => (
-              <div key={plan.id || plan.name} className="rounded-xl border border-slate-200 bg-white/90 p-3 text-left">
-                <div className="flex justify-between items-start gap-2">
-                  <div>
-                    <p className="font-black text-slate-900">{plan.name}</p>
-                    <p className="text-xs text-slate-500">{plan.period}</p>
+            <input
+              className={input}
+              placeholder="M-Pesa number for STK (07… ) — optional"
+              value={payPhone}
+              onChange={(e) => setPayPhone(e.target.value)}
+            />
+            <p className="text-[11px] text-slate-500 text-center">With a number we try STK push first (one prompt). Otherwise full checkout.</p>
+            {[...(pricing.plans || DEFAULT_PLANS.plans)]
+              .slice()
+              .sort((a, b) => (b.id === 'premium' ? 1 : 0) - (a.id === 'premium' ? 1 : 0) || Number(b.price) - Number(a.price))
+              .map((plan) => {
+                const isPrem = plan.id === 'premium' || plan.highlight
+                return (
+                  <div
+                    key={plan.id || plan.name}
+                    className={`rounded-xl p-3 text-left border-2 ${
+                      isPrem
+                        ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md shadow-amber-200/50'
+                        : 'border-slate-200 bg-white/90'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        {isPrem && (
+                          <span className="text-[10px] font-bold uppercase text-amber-700 bg-amber-200/80 px-2 py-0.5 rounded-full">
+                            Recommended
+                          </span>
+                        )}
+                        <p className={`font-black ${isPrem ? 'text-amber-950' : 'text-slate-900'}`}>{plan.name}</p>
+                        <p className="text-xs text-slate-500">{plan.period}</p>
+                      </div>
+                      <p className={`font-black shrink-0 ${isPrem ? 'text-amber-700' : 'text-blue-700'}`}>
+                        {Number(plan.price) <= 0
+                          ? 'Free'
+                          : `${pricing.currency || 'KES'} ${Number(plan.price).toLocaleString()}`}
+                      </p>
+                    </div>
+                    {plan.features?.length > 0 && (
+                      <ul className="mt-2 text-xs text-slate-600 list-disc pl-4 space-y-0.5">
+                        {plan.features.slice(0, 5).map((f) => (
+                          <li key={f}>{f}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <button
+                      type="button"
+                      disabled={payBusy}
+                      className={`w-full mt-3 text-sm font-bold py-2.5 rounded-xl text-white ${
+                        isPrem ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-blue-600'
+                      }`}
+                      onClick={() => subscribePlan(plan)}
+                    >
+                      {Number(plan.price) <= 0 ? 'Start free' : isPrem ? 'Go Premium' : 'Get Basic'}
+                    </button>
                   </div>
-                  <p className="font-black text-blue-700 shrink-0">
-                    {Number(plan.price) <= 0 ? 'Free' : `${pricing.currency || 'KES'} ${Number(plan.price).toLocaleString()}`}
-                  </p>
-                </div>
-                {plan.features?.length > 0 && (
-                  <ul className="mt-2 text-xs text-slate-600 list-disc pl-4 space-y-0.5">
-                    {plan.features.slice(0, 4).map((f) => (
-                      <li key={f}>{f}</li>
-                    ))}
-                  </ul>
-                )}
-                <button
-                  type="button"
-                  disabled={payBusy}
-                  className={`${btnGreen} w-full mt-3 text-sm`}
-                  onClick={() => subscribePlan(plan)}
-                >
-                  {Number(plan.price) <= 0 ? 'Start free' : 'Subscribe & pay'}
-                </button>
-              </div>
-            ))}
+                )
+              })}
           </div>
         </div>
 
