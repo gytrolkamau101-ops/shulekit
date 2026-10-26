@@ -175,6 +175,9 @@ export default function StudentFinance({ school, term }) {
     return (
       <div className="space-y-6">
         <PageTitle>Student Finance</PageTitle>
+        <p className="text-sm text-slate-600 -mt-2 mb-2">
+          Parents pay your school Till/Paybill on M-Pesa. Use <strong>Record payment</strong> here when money has been received so balances stay correct.
+        </p>
         <NeedTerm />
       </div>
     )

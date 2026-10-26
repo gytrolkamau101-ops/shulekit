@@ -74,9 +74,17 @@ export default function AccountGate({ session }) {
         if (!alive) return
 
         if (adminRow) setKind('admin')
-        else if (parentRow) setKind('parent')
-        else if (staffRow) setKind('staff')
-        else setKind('none')
+        else if (parentRow) {
+          const st = (parentRow.status || 'active').toLowerCase()
+          if (st === 'pending' || st === 'pending_approval') setKind('parent_pending')
+          else if (st === 'rejected' || st === 'suspended') setKind('parent_blocked')
+          else setKind('parent')
+        } else if (staffRow) {
+          const st = (staffRow.status || 'active').toLowerCase()
+          if (st === 'pending' || st === 'pending_approval') setKind('staff_pending')
+          else if (st === 'rejected' || st === 'suspended') setKind('staff_blocked')
+          else setKind('staff')
+        } else setKind('none')
       } catch (e) {
         if (alive) {
           setError(e?.message || 'Could not load your profile')
@@ -103,6 +111,23 @@ export default function AccountGate({ session }) {
   if (kind === 'admin') return <SuperAdmin session={session} />
   if (kind === 'parent') return <ParentPortal session={session} />
   if (kind === 'staff') return <Dashboard session={session} />
+
+  if (kind === 'staff_pending' || kind === 'parent_pending') {
+    return (
+      <WaitingScreen
+        title="Awaiting approval"
+        message="Your account is waiting for the school to approve it. You can refresh after they activate you, or log out and try again later."
+      />
+    )
+  }
+  if (kind === 'staff_blocked' || kind === 'parent_blocked') {
+    return (
+      <WaitingScreen
+        title="Account not active"
+        message="This account is suspended or was not approved. Contact your school or platform admin."
+      />
+    )
+  }
 
   return (
     <WaitingScreen

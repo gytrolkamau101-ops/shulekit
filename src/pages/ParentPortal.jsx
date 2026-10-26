@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
-import { Card, Scroll, Alert, th, td, fmt, btn, btnGreen, Spinner } from '../components/ui'
-import { payWithIntaSend } from '../lib/intasend'
-import { planEntitlements } from '../lib/plans'
+import { Card, Scroll, Alert, th, td, fmt, btn, btnGreen, Spinner, input } from '../components/ui'
 
 export default function ParentPortal({ session }) {
   const [parent, setParent] = useState(null)
@@ -123,16 +121,25 @@ function ChildDetail({ student, schoolId, session }) {
   const [results, setResults] = useState([])
   const [attendance, setAttendance] = useState([])
   const [loading, setLoading] = useState(true)
+  const [schoolPay, setSchoolPay] = useState(null)
 
   useEffect(() => {
     ;(async () => {
-      const { data: tlist } = await supabase
-        .from('terms')
-        .select('*')
-        .eq('school_id', schoolId)
-        .order('year', { ascending: false })
-        .order('term', { ascending: false })
+      const [{ data: tlist }, { data: sch }] = await Promise.all([
+        supabase
+          .from('terms')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('year', { ascending: false })
+          .order('term', { ascending: false }),
+        supabase
+          .from('schools')
+          .select('mpesa_paybill, mpesa_till, mpesa_phone, mpesa_account_ref, fee_payment_instructions')
+          .eq('id', schoolId)
+          .maybeSingle(),
+      ])
       setTerms(tlist || [])
+      setSchoolPay(sch || null)
       const cur = (tlist || []).find((t) => t.is_current) || (tlist || [])[0]
       if (cur) setTermId(cur.id)
     })()
@@ -260,25 +267,59 @@ function ChildDetail({ student, schoolId, session }) {
                 </p>
               </div>
             </div>
-            {balance > 0 && planEntitlements({ plan: school?.plan || schoolPlan, plan_expires_at: school?.plan_expires_at }).parentPay && (
-              <button
-                type="button"
-                className={`${btnGreen} mt-4 w-full`}
-                onClick={async () => {
-                  try {
-                    await payWithIntaSend({
-                      amount: Math.ceil(balance),
-                      email: session?.user?.email,
-                      apiRef: `fee-${student.id}-${Date.now()}`,
-                      comment: `School fees ${student.admission_no}`,
-                    })
-                  } catch (e) {
-                    alert(e?.message || 'Payment could not start. School may need IntaSend configured.')
-                  }
-                }}
-              >
-                Pay balance via IntaSend (KES {fmt(Math.ceil(balance))})
-              </button>
+            {balance > 0 && (
+              <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-bold text-slate-900">How to pay</p>
+                <p className="text-xs text-slate-600">
+                  Pay the school directly on M-Pesa. ShuleKit does not collect school fees — money goes to the school only.
+                </p>
+                {(schoolPay?.mpesa_paybill || schoolPay?.mpesa_till || schoolPay?.mpesa_phone) ? (
+                  <div className="text-sm text-slate-800 space-y-1.5 bg-white rounded-xl border border-slate-200 p-3">
+                    <p className="text-xs font-bold uppercase text-slate-500">Lipa na M-Pesa</p>
+                    {schoolPay.mpesa_till && (
+                      <p>
+                        <span className="text-slate-500">Till (Buy Goods): </span>
+                        <strong className="text-lg tracking-wide">{schoolPay.mpesa_till}</strong>
+                      </p>
+                    )}
+                    {schoolPay.mpesa_paybill && (
+                      <p>
+                        <span className="text-slate-500">Paybill: </span>
+                        <strong className="text-lg tracking-wide">{schoolPay.mpesa_paybill}</strong>
+                      </p>
+                    )}
+                    {(schoolPay.mpesa_account_ref || student.admission_no) && (
+                      <p>
+                        <span className="text-slate-500">Account: </span>
+                        <strong>{schoolPay.mpesa_account_ref || student.admission_no}</strong>
+                        <span className="text-xs text-slate-500"> (use admission no. if unsure)</span>
+                      </p>
+                    )}
+                    {schoolPay.mpesa_phone && (
+                      <p>
+                        <span className="text-slate-500">School M-Pesa phone: </span>
+                        <strong>{schoolPay.mpesa_phone}</strong>
+                      </p>
+                    )}
+                    <p>
+                      <span className="text-slate-500">Amount: </span>
+                      <strong>KES {fmt(Math.ceil(balance))}</strong>
+                    </p>
+                    {schoolPay.fee_payment_instructions && (
+                      <p className="text-xs text-slate-600 pt-1 border-t border-slate-100 mt-2">
+                        {schoolPay.fee_payment_instructions}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    This school has not published a Till/Paybill yet. Contact the school office to pay and ask them to record your payment.
+                  </p>
+                )}
+                <p className="text-[11px] text-slate-500">
+                  After you pay, the school records the payment in ShuleKit. Your balance updates when they confirm — usually the same day.
+                </p>
+              </div>
             )}
             {payments.length > 0 && (
               <Scroll>

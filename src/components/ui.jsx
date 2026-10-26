@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 
 export const input =
   'w-full p-3 border border-slate-200 rounded-xl bg-white text-base text-slate-800 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition'
+
+/** Dark UI fields — always visible on slate-950 backgrounds */
+export const darkField =
+  'w-full p-3 rounded-xl border border-slate-500 bg-slate-800 text-white text-base placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400'
 export const btn =
   'inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold shadow-md shadow-blue-600/20 hover:from-blue-500 hover:to-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition'
 export const btnGreen =

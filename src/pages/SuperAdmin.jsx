@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
-import { payWithIntaSend, intasendConfig } from '../lib/intasend'
+import { payAdminBillStk, intasendConfig } from '../lib/intasend'
 import { getSetting, saveSetting } from '../lib/platform'
-import { Card, Scroll, Alert, input, btn, btnGreen, th, td, toast, Spinner } from '../components/ui'
+import { Card, Scroll, Alert, darkField, btn, btnGreen, th, td, toast, Spinner } from '../components/ui'
+import { DEFAULT_PLANS } from '../lib/plans'
 
-const saField =
-  'w-full p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
+const saField = darkField
 
-const TABS = ['overview', 'schools', 'billing', 'theme', 'pricing', 'pages', 'audit']
+const TABS = ['overview', 'schools', 'billing', 'payments', 'theme', 'pricing', 'pages', 'audit']
 
 export default function SuperAdmin({ session }) {
   const [admin, setAdmin] = useState(null)
@@ -27,6 +27,8 @@ export default function SuperAdmin({ session }) {
   const [how, setHow] = useState({ title: 'How it works', body: '' })
   const [contacts, setContacts] = useState({ title: 'Contact us', email: '', phone: '', whatsapp: '', address: '' })
   const [savingCms, setSavingCms] = useState(false)
+  const [payEvents, setPayEvents] = useState([])
+  const [payFilter, setPayFilter] = useState('all') // all | success | failed | pending
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -36,12 +38,14 @@ export default function SuperAdmin({ session }) {
       setLoading(false)
       return
     }
-    const [{ data: sch }, { data: aud }] = await Promise.all([
+    const [{ data: sch }, { data: aud }, { data: pays }] = await Promise.all([
       supabase.from('schools').select('*').order('created_at', { ascending: false }),
       supabase.from('audit_events').select('*').order('created_at', { ascending: false }).limit(100),
+      supabase.from('subscription_events').select('*').order('created_at', { ascending: false }).limit(300),
     ])
     setSchools(sch || [])
     setEvents(aud || [])
+    setPayEvents(pays || [])
     const [th, pr, te, hi, co] = await Promise.all([
       getSetting('theme'),
       getSetting('pricing'),
@@ -50,7 +54,8 @@ export default function SuperAdmin({ session }) {
       getSetting('contacts'),
     ])
     if (th) setTheme((p) => ({ ...p, ...th }))
-    if (pr) setPricing(pr)
+    if (pr?.plans?.length) setPricing(pr)
+    else setPricing(DEFAULT_PLANS)
     if (te) setTerms(te)
     if (hi) setHow(hi)
     if (co) setContacts(co)
@@ -65,8 +70,40 @@ export default function SuperAdmin({ session }) {
     const suspended = schools.filter((s) => s.is_suspended).length
     const paid = schools.filter((s) => s.plan && s.plan !== 'free' && s.plan !== 'trial').length
     const trial = schools.filter((s) => !s.plan || s.plan === 'trial' || s.plan === 'free').length
-    return { total: schools.length, suspended, paid, trial, audit: events.length }
-  }, [schools, events])
+    const st = (s) => (s || '').toUpperCase()
+    const payOk = payEvents.filter((e) => ['COMPLETE', 'COMPLETED', 'PAID'].includes(st(e.state))).length
+    const payFail = payEvents.filter((e) => ['FAILED', 'CANCELED', 'CANCELLED'].includes(st(e.state))).length
+    const payPending = payEvents.filter((e) =>
+      ['STK_INIT', 'STK_SENT', 'PENDING', 'PROCESSING', 'RETRY', 'PARTIAL'].includes(st(e.state))
+    ).length
+    return { total: schools.length, suspended, paid, trial, audit: events.length, payOk, payFail, payPending }
+  }, [schools, events, payEvents])
+
+  const filteredPays = useMemo(() => {
+    const st = (s) => (s || '').toUpperCase()
+    return payEvents.filter((e) => {
+      const s = st(e.state)
+      if (payFilter === 'success') return ['COMPLETE', 'COMPLETED', 'PAID'].includes(s)
+      if (payFilter === 'failed') return ['FAILED', 'CANCELED', 'CANCELLED'].includes(s)
+      if (payFilter === 'pending') return ['STK_INIT', 'STK_SENT', 'PENDING', 'PROCESSING', 'RETRY', 'PARTIAL'].includes(s)
+      return true
+    })
+  }, [payEvents, payFilter])
+
+  const schoolName = (id) => {
+    if (!id) return '—'
+    const s = schools.find((x) => x.id === id)
+    return s?.school_name || String(id).slice(0, 8) + '…'
+  }
+
+  const payStatusBadge = (state) => {
+    const s = (state || '').toUpperCase()
+    if (['COMPLETE', 'COMPLETED', 'PAID'].includes(s))
+      return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+    if (['FAILED', 'CANCELED', 'CANCELLED'].includes(s))
+      return 'bg-red-500/20 text-red-300 border-red-500/40'
+    return 'bg-amber-500/20 text-amber-200 border-amber-500/40'
+  }
 
   const filtered = schools.filter(
     (s) =>
@@ -118,6 +155,14 @@ export default function SuperAdmin({ session }) {
       plans[idx] = { ...plans[idx], [field]: field === 'price' || field === 'days' ? Number(val) : val }
       return { ...p, plans }
     })
+  }
+
+  const removePlan = (idx) => {
+    if (!confirm('Delete this plan from the public pricing list?')) return
+    setPricing((p) => ({
+      ...p,
+      plans: (p.plans || []).filter((_, i) => i !== idx),
+    }))
   }
 
   const logout = () => supabase.auth.signOut()
@@ -221,7 +266,7 @@ export default function SuperAdmin({ session }) {
         {tab === 'schools' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
             <div className="p-4 border-b border-slate-800">
-              <input className={saField} placeholder="Filter…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+              <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="Filter…" value={filter} onChange={(e) => setFilter(e.target.value)} />
             </div>
             <Scroll>
               <table className="w-full">
@@ -312,23 +357,18 @@ export default function SuperAdmin({ session }) {
                 className={btn}
                 onClick={async () => {
                   if (!billSchool) return setError('Pick a school')
+                  if (!billPhone) return setError('Enter M-Pesa number for STK')
                   setBilling(true)
+                  setError('')
                   try {
-                    await payWithIntaSend({
+                    const r = await payAdminBillStk({
+                      schoolId: billSchool,
                       amount: Number(billAmount) || 5000,
-                      email: session.user.email,
                       phone: billPhone,
-                      preferStk: true,
-                      apiRef: `plan-basic-${billSchool}-${Date.now()}`,
-                      comment: 'ShuleKit subscription',
-                      onComplete: async () => {
-                        const d = new Date()
-                        d.setDate(d.getDate() + 90)
-                        await supabase.from('schools').update({ plan_expires_at: d.toISOString(), plan: 'basic' }).eq('id', billSchool)
-                        toast('Payment complete', 'ok')
-                        load()
-                      },
+                      planId: 'basic',
+                      email: session.user.email,
                     })
+                    toast(r.message || 'STK sent — complete PIN on phone', 'ok')
                   } catch (e) {
                     setError(e?.message || 'Payment failed')
                   }
@@ -356,7 +396,7 @@ export default function SuperAdmin({ session }) {
               </label>
               <label className="text-xs text-slate-400">
                 Icon letters
-                <input className={`${input} bg-slate-950 border-slate-700 text-white mt-1`} maxLength={3} value={theme.logo_text} onChange={(e) => setTheme({ ...theme, logo_text: e.target.value })} />
+                <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} maxLength={3} value={theme.logo_text} onChange={(e) => setTheme({ ...theme, logo_text: e.target.value })} />
               </label>
               <label className="text-xs text-slate-400">
                 Background from
@@ -368,7 +408,7 @@ export default function SuperAdmin({ session }) {
               </label>
               <label className="text-xs text-slate-400">
                 Style
-                <select className={`${input} bg-slate-950 border-slate-700 text-white mt-1`} value={theme.bg_style} onChange={(e) => setTheme({ ...theme, bg_style: e.target.value })}>
+                <select className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} value={theme.bg_style} onChange={(e) => setTheme({ ...theme, bg_style: e.target.value })}>
                   <option value="gradient">Gradient</option>
                   <option value="solid">Solid</option>
                 </select>
@@ -395,12 +435,32 @@ export default function SuperAdmin({ session }) {
             <h2 className="text-xl font-black">Public pricing plans</h2>
             <p className="text-sm text-slate-400">Shown on the login page. Schools pick a plan and pay via IntaSend.</p>
             {(pricing.plans || []).map((plan, idx) => (
-              <div key={plan.id || idx} className="grid grid-cols-2 md:grid-cols-5 gap-2 border border-slate-800 rounded-xl p-3">
-                <input className={saField} value={plan.name || ''} onChange={(e) => updatePlanField(idx, 'name', e.target.value)} placeholder="Name" />
-                <input className={saField} type="number" value={plan.price ?? 0} onChange={(e) => updatePlanField(idx, 'price', e.target.value)} placeholder="Price" />
-                <input className={saField} value={plan.period || ''} onChange={(e) => updatePlanField(idx, 'period', e.target.value)} placeholder="per term" />
-                <input className={saField} type="number" value={plan.days ?? 90} onChange={(e) => updatePlanField(idx, 'days', e.target.value)} placeholder="Days" />
-                <input className={saField} value={plan.id || ''} onChange={(e) => updatePlanField(idx, 'id', e.target.value)} placeholder="id" />
+              <div key={plan.id || idx} className="space-y-2 border border-slate-700 rounded-xl p-3 bg-slate-950/50">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                  <input className={saField} value={plan.name || ''} onChange={(e) => updatePlanField(idx, 'name', e.target.value)} placeholder="Name" style={{ color: '#fff', backgroundColor: '#1e293b' }} />
+                  <input className={saField} type="number" value={plan.price ?? 0} onChange={(e) => updatePlanField(idx, 'price', e.target.value)} placeholder="Price" style={{ color: '#fff', backgroundColor: '#1e293b' }} />
+                  <input className={saField} value={plan.period || ''} onChange={(e) => updatePlanField(idx, 'period', e.target.value)} placeholder="per term" style={{ color: '#fff', backgroundColor: '#1e293b' }} />
+                  <input className={saField} type="number" value={plan.days ?? 90} onChange={(e) => updatePlanField(idx, 'days', e.target.value)} placeholder="Days" style={{ color: '#fff', backgroundColor: '#1e293b' }} />
+                  <input className={saField} value={plan.id || ''} onChange={(e) => updatePlanField(idx, 'id', e.target.value)} placeholder="id" style={{ color: '#fff', backgroundColor: '#1e293b' }} />
+                </div>
+                <textarea
+                  className={`${saField} min-h-[72px]`}
+                  style={{ color: '#fff', backgroundColor: '#1e293b' }}
+                  placeholder="Features (one per line)"
+                  value={(plan.features || []).join('\n')}
+                  onChange={(e) =>
+                    updatePlanField(
+                      idx,
+                      'features',
+                      e.target.value.split('\n').map((x) => x.trim()).filter(Boolean)
+                    )
+                  }
+                />
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => removePlan(idx)} className="text-sm font-bold text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg border border-red-500/40">
+                    Delete plan
+                  </button>
+                </div>
               </div>
             ))}
             <button
@@ -435,7 +495,7 @@ export default function SuperAdmin({ session }) {
                   onChange={(e) => block.set({ ...block.state, title: e.target.value })}
                 />
                 <textarea
-                  className={`${input} bg-slate-950 border-slate-700 text-white min-h-[140px]`}
+                  className={saField}
                   value={block.state.body || ''}
                   onChange={(e) => block.set({ ...block.state, body: e.target.value })}
                 />
@@ -446,14 +506,117 @@ export default function SuperAdmin({ session }) {
             ))}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">
               <h2 className="font-black">Contacts</h2>
-              <input className={saField} placeholder="Email" value={contacts.email || ''} onChange={(e) => setContacts({ ...contacts, email: e.target.value })} />
-              <input className={saField} placeholder="Phone" value={contacts.phone || ''} onChange={(e) => setContacts({ ...contacts, phone: e.target.value })} />
-              <input className={saField} placeholder="WhatsApp" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
-              <input className={saField} placeholder="Address" value={contacts.address || ''} onChange={(e) => setContacts({ ...contacts, address: e.target.value })} />
+              <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="Email" value={contacts.email || ''} onChange={(e) => setContacts({ ...contacts, email: e.target.value })} />
+              <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="Phone" value={contacts.phone || ''} onChange={(e) => setContacts({ ...contacts, phone: e.target.value })} />
+              <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="WhatsApp" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
+              <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="Address" value={contacts.address || ''} onChange={(e) => setContacts({ ...contacts, address: e.target.value })} />
               <button type="button" disabled={savingCms} className={btnGreen} onClick={() => saveCms('contacts', contacts)}>
                 Save contacts
               </button>
             </div>
+          </div>
+        )}
+
+
+        {tab === 'payments' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+                <p className="text-2xl font-black text-emerald-300">{stats.payOk}</p>
+                <p className="text-xs text-emerald-200/80">Successful</p>
+              </div>
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
+                <p className="text-2xl font-black text-red-300">{stats.payFail}</p>
+                <p className="text-xs text-red-200/80">Failed</p>
+              </div>
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+                <p className="text-2xl font-black text-amber-200">{stats.payPending}</p>
+                <p className="text-xs text-amber-100/80">Pending / STK</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'success', label: 'Successful' },
+                { id: 'failed', label: 'Failed' },
+                { id: 'pending', label: 'Pending' },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setPayFilter(f.id)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold border ${
+                    payFilter === f.id
+                      ? 'bg-cyan-600 border-cyan-400 text-white'
+                      : 'bg-slate-900 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+              <button type="button" className="ml-auto text-sm text-cyan-400 font-semibold" onClick={load}>
+                Refresh
+              </button>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
+              <div className="p-4 font-bold border-b border-slate-800 flex justify-between">
+                <span>Payment log</span>
+                <span className="text-xs font-normal text-slate-400">{filteredPays.length} shown · latest 300</span>
+              </div>
+              <Scroll>
+                <table className="w-full">
+                  <thead className="bg-slate-950">
+                    <tr>
+                      <th className={`${th} bg-transparent text-slate-400`}>When</th>
+                      <th className={`${th} bg-transparent text-slate-400`}>Status</th>
+                      <th className={`${th} bg-transparent text-slate-400`}>Amount</th>
+                      <th className={`${th} bg-transparent text-slate-400`}>Kind / Plan</th>
+                      <th className={`${th} bg-transparent text-slate-400`}>School</th>
+                      <th className={`${th} bg-transparent text-slate-400`}>Ref / Invoice</th>
+                      <th className={`${th} bg-transparent text-slate-400`}>Phone</th>
+                      <th className={`${th} bg-transparent text-slate-400`}>Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPays.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className={`${td} text-slate-500 text-center py-8`}>
+                          No payment events yet. STK attempts and IntaSend webhooks appear here.
+                        </td>
+                      </tr>
+                    )}
+                    {filteredPays.map((e) => (
+                      <tr key={e.id} className="border-t border-slate-800 align-top">
+                        <td className={`${td} text-xs text-slate-400 whitespace-nowrap`}>
+                          {e.created_at ? new Date(e.created_at).toLocaleString('en-GB') : '—'}
+                        </td>
+                        <td className={td}>
+                          <span className={`inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${payStatusBadge(e.state)}`}>
+                            {e.state || '—'}
+                          </span>
+                        </td>
+                        <td className={`${td} font-mono text-slate-200`}>
+                          {e.amount != null ? `KES ${Number(e.amount).toLocaleString()}` : '—'}
+                        </td>
+                        <td className={`${td} text-xs text-slate-300`}>
+                          {e.kind || '—'}
+                          {e.plan_id ? ` · ${e.plan_id}` : ''}
+                        </td>
+                        <td className={`${td} text-xs text-slate-300`}>{schoolName(e.school_id)}</td>
+                        <td className={`${td} text-[10px] font-mono text-slate-500 max-w-[140px] break-all`}>
+                          {e.invoice_id || e.api_ref || '—'}
+                        </td>
+                        <td className={`${td} text-xs text-slate-400`}>{e.phone_masked || '—'}</td>
+                        <td className={`${td} text-xs text-red-300 max-w-[160px]`}>{e.error_message || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Scroll>
+            </div>
+            <p className="text-xs text-slate-500">
+              Successful = COMPLETE/PAID from IntaSend webhook. Failed = STK or payment failure. Pending = STK sent or processing.
+            </p>
           </div>
         )}
 

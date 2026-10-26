@@ -1,4 +1,11 @@
-/** IntaSend — prefer STK (brief) when phone given; else hosted checkout */
+/**
+ * IntaSend client helpers.
+ * - STK: server-side only (secret key never in browser). Amounts decided on server.
+ * - Hosted checkout: uses platform publishable key only (same wallet as secret).
+ * Client cannot choose a different IntaSend account or underpay plans.
+ */
+
+import { supabase } from '../supabaseClient'
 
 export function intasendConfig() {
   const publicKey = import.meta.env.VITE_INTASEND_PUBLIC_KEY || ''
@@ -6,17 +13,66 @@ export function intasendConfig() {
   return { publicKey, live }
 }
 
-function normalizeKePhone(phone) {
+export function normalizeKePhone(phone) {
   if (!phone) return null
   let p = String(phone).replace(/\D/g, '')
   if (p.startsWith('0')) p = '254' + p.slice(1)
   if (p.startsWith('7') && p.length === 9) p = '254' + p
-  if (p.length < 12) return null
+  if (p.startsWith('1') && p.length === 9) p = '254' + p
+  if (!p.startsWith('254') || p.length < 12) return null
   return p
 }
 
-/** Hosted checkout — optional method hint for M-Pesa-first UX where supported */
-async function hostedCheckout({ publicKey, live, amount, email, phone, apiRef, comment }) {
+async function authHeader() {
+  const { data } = await supabase.auth.getSession()
+  const token = data?.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+/** Platform plan subscribe — server sets amount from plan_id */
+export async function payPlatformPlan({ planId, phone, email }) {
+  const ph = normalizeKePhone(phone)
+  if (!ph) throw new Error('Enter a valid M-Pesa number (07… or 2547…)')
+  const res = await fetch('/.netlify/functions/intasend-stk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+    body: JSON.stringify({ kind: 'platform_subscribe', plan_id: planId, phone_number: ph, email }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'STK failed')
+  return data
+}
+
+/** @deprecated School fees are not collected via platform STK (v23+). */
+export async function paySchoolFeeStk() {
+  throw new Error('School fees are paid to the school Till/Paybill only. Platform STK is disabled for fees.')
+}
+
+/** Super Admin bill school */
+export async function payAdminBillStk({ schoolId, amount, phone, planId, email }) {
+  const ph = normalizeKePhone(phone)
+  if (!ph) throw new Error('Enter a valid M-Pesa number (07… or 2547…)')
+  const res = await fetch('/.netlify/functions/intasend-stk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+    body: JSON.stringify({
+      kind: 'admin_bill',
+      school_id: schoolId,
+      amount: Number(amount),
+      plan_id: planId || 'basic',
+      phone_number: ph,
+      email,
+    }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'STK failed')
+  return data
+}
+
+/** Hosted checkout fallback — platform public key only (same account as secret) */
+export async function hostedCheckoutPlatform({ amount, email, phone, apiRef, comment }) {
+  const { publicKey, live } = intasendConfig()
+  if (!publicKey) throw new Error('Missing VITE_INTASEND_PUBLIC_KEY')
   const base = live ? 'https://payment.intasend.com' : 'https://sandbox.intasend.com'
   const payload = {
     public_key: publicKey,
@@ -24,80 +80,54 @@ async function hostedCheckout({ publicKey, live, amount, email, phone, apiRef, c
     currency: 'KES',
     email: email || 'billing@shulekit.app',
     api_ref: apiRef || `shulekit-${Date.now()}`,
-    comment: comment || 'ShuleKit subscription',
-    redirect_url: typeof window !== 'undefined' ? window.location.origin + window.location.pathname : undefined,
+    comment: comment || 'ShuleKit',
+    redirect_url: typeof window !== 'undefined' ? window.location.href : undefined,
   }
   const ph = normalizeKePhone(phone)
   if (ph) payload.phone_number = ph
-
   const res = await fetch(`${base}/api/v1/checkout/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(data.detail || data.message || data.error || `Checkout failed (${res.status})`)
-  }
+  if (!res.ok) throw new Error(data.detail || data.message || data.error || 'Checkout failed')
   const url = data.url || data.checkout_url
-  if (!url) throw new Error(typeof data === 'object' ? JSON.stringify(data) : 'No checkout URL')
+  if (!url) throw new Error('No checkout URL')
   window.location.href = url
   return data
 }
 
-/** STK via Netlify function (secret key server-side) — one prompt on phone */
-async function stkPush({ amount, phone, apiRef, email }) {
-  const ph = normalizeKePhone(phone)
-  if (!ph) throw new Error('Enter a valid M-Pesa number (07… or 2547…)')
-  const res = await fetch('/.netlify/functions/intasend-stk', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      amount: Number(amount),
-      phone_number: ph,
-      api_ref: apiRef,
-      email,
-    }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(data.error || data.detail || data.message || 'STK push failed')
-  }
-  return data
-}
-
 /**
- * @param {{ amount, email?, phone?, apiRef?, comment?, preferStk?: boolean, onComplete?, onFailed? }} opts
- * preferStk true → try M-Pesa STK first (needs Netlify function + secret key)
+ * Legacy helper — prefers secure STK for plans when phone present.
+ * @deprecated prefer payPlatformPlan / paySchoolFeeStk
  */
 export async function payWithIntaSend(opts) {
-  const { publicKey, live } = intasendConfig()
-  if (!publicKey) throw new Error('Missing VITE_INTASEND_PUBLIC_KEY in .env')
-
-  const preferStk = opts.preferStk !== false
-  if (preferStk && opts.phone) {
+  if (opts.planId && opts.phone) {
+    return payPlatformPlan({ planId: opts.planId, phone: opts.phone, email: opts.email })
+  }
+  if (opts.preferStk !== false && opts.phone && opts.amount) {
     try {
-      return await stkPush({
-        amount: opts.amount,
-        phone: opts.phone,
-        apiRef: opts.apiRef,
-        email: opts.email,
+      const ph = normalizeKePhone(opts.phone)
+      const res = await fetch('/.netlify/functions/intasend-stk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({
+          kind: opts.kind || 'platform_subscribe',
+          plan_id: opts.planId || opts.apiRef?.split('-')[1],
+          amount: opts.amount,
+          phone_number: ph,
+          email: opts.email,
+          school_id: opts.schoolId,
+          student_id: opts.studentId,
+        }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) return data
+      if (import.meta.env.DEV) console.warn('STK failed', data.error)
     } catch (e) {
-      // Fall through to hosted if function missing (localhost) or error
-      if (import.meta.env.DEV) {
-        console.warn('STK unavailable, using hosted checkout:', e.message)
-      }
+      if (import.meta.env.DEV) console.warn(e)
     }
   }
-
-  return hostedCheckout({
-    publicKey,
-    live,
-    amount: opts.amount,
-    email: opts.email,
-    phone: opts.phone,
-    apiRef: opts.apiRef,
-    comment: opts.comment,
-  })
+  return hostedCheckoutPlatform(opts)
 }

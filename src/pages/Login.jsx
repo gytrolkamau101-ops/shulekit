@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { input, btn, btnGreen, Alert, PasswordInput, Spinner } from '../components/ui'
 import { getSettings } from '../lib/platform'
-import { payWithIntaSend } from '../lib/intasend'
+import { payPlatformPlan, hostedCheckoutPlatform } from '../lib/intasend'
 import { DEFAULT_PLANS } from '../lib/plans'
 
 
@@ -32,6 +32,7 @@ export default function Login() {
   const [contacts, setContacts] = useState(null)
   const [payBusy, setPayBusy] = useState(false)
   const [payPhone, setPayPhone] = useState('')
+  const [showPricing, setShowPricing] = useState(false)
 
   const reset = () => {
     setError('')
@@ -58,28 +59,48 @@ export default function Login() {
     try {
       if (!plan.price || Number(plan.price) <= 0) {
         setInfo(`${plan.name} is free — register your school, then start using ShuleKit.`)
+        setShowPricing(false)
         setView('auth')
         setMode('register')
         setRegType('new')
         setPayBusy(false)
         return
       }
-      await payWithIntaSend({
-        amount: Number(plan.price),
+      if (!payPhone) {
+        setError('Enter your M-Pesa number for STK (recommended), or leave blank only if you must use full card checkout.')
+        // Still allow hosted if no phone
+        await hostedCheckoutPlatform({
+          amount: Number(plan.price),
+          email: email || undefined,
+          apiRef: `plan-${plan.id}-pending-${Date.now()}`,
+          comment: `ShuleKit ${plan.name}`,
+        })
+        setPayBusy(false)
+        return
+      }
+      const result = await payPlatformPlan({
+        planId: plan.id,
+        phone: payPhone,
         email: email || undefined,
-        phone: payPhone || undefined,
-        preferStk: true,
-        apiRef: `plan-${plan.id}-pending-${Date.now()}`,
-        comment: `ShuleKit ${plan.name}`,
-        onComplete: () => {
-          setInfo(`Payment received for ${plan.name}. Register your school (or log in) — Super Admin will confirm plan if webhook is not yet wired.`)
-          setView('auth')
-          setMode('register')
-          setRegType('new')
-        },
       })
+      setInfo(
+        result.message ||
+          `STK sent for KES ${result.amount}. Enter your M-Pesa PIN. After payment, register as Principal — plan activates when webhook confirms.`
+      )
+      setShowPricing(false)
     } catch (e) {
-      setError(e?.message || 'Payment could not start')
+      // Fallback hosted only with platform key
+      try {
+        await hostedCheckoutPlatform({
+          amount: Number(plan.price),
+          email: email || undefined,
+          phone: payPhone || undefined,
+          apiRef: `plan-${plan.id}-pending-${Date.now()}`,
+          comment: `ShuleKit ${plan.name}`,
+        })
+      } catch (e2) {
+        setError(e?.message || e2?.message || 'Payment could not start')
+      }
     }
     setPayBusy(false)
   }
@@ -200,7 +221,7 @@ export default function Login() {
               <Alert>{error}</Alert>
               <Alert kind="ok">{info}</Alert>
               <div className="space-y-3">
-                {(pricing.plans || []).map((plan) => (
+                {(pricing?.plans?.length ? pricing.plans : DEFAULT_PLANS.plans).map((plan) => (
                   <div key={plan.id || plan.name} className="border border-slate-200 rounded-xl p-4">
                     <div className="flex justify-between items-start gap-2">
                       <div>
@@ -444,73 +465,103 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Plan tiers on main page */}
-        <div className="mt-6 sk-glass rounded-2xl p-4 space-y-3">
-          <h2 className="text-center text-lg font-black text-slate-900">Choose your plan</h2>
-          <p className="text-center text-xs text-slate-600">Subscribe for your school — pay with M-Pesa / card</p>
-          <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setError('')
+            setInfo('')
+            setShowPricing(true)
+          }}
+          className="mt-6 w-full py-5 rounded-2xl text-xl font-black text-white shadow-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 active:scale-[0.99] transition"
+        >
+          Subscribe
+        </button>
+        <p className="mt-2 text-center text-xs text-white/80">School plans · M-Pesa / card</p>
+
+        {showPricing && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setShowPricing(false)} />
+            <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white shadow-2xl p-5 space-y-3">
+              <div className="flex items-center justify-between gap-3 sticky top-0 bg-white pb-2 z-10">
+                <h2 className="text-xl font-black text-slate-900">Choose a plan</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowPricing(false)}
+                  className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 font-bold text-lg hover:bg-slate-200"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-sm text-slate-600">Pay with M-Pesa or card. After payment, register or log in as Principal.</p>
+              <Alert>{error}</Alert>
+              <Alert kind="ok">{info}</Alert>
+
             <input
               className={input}
-              placeholder="M-Pesa number for STK (07… ) — optional"
+              placeholder="M-Pesa number (07…) for STK — optional"
               value={payPhone}
               onChange={(e) => setPayPhone(e.target.value)}
             />
-            <p className="text-[11px] text-slate-500 text-center">With a number we try STK push first (one prompt). Otherwise full checkout.</p>
-            {[...(pricing.plans || DEFAULT_PLANS.plans)]
-              .slice()
-              .sort((a, b) => (b.id === 'premium' ? 1 : 0) - (a.id === 'premium' ? 1 : 0) || Number(b.price) - Number(a.price))
-              .map((plan) => {
-                const isPrem = plan.id === 'premium' || plan.highlight
-                return (
-                  <div
-                    key={plan.id || plan.name}
-                    className={`rounded-xl p-3 text-left border-2 ${
-                      isPrem
-                        ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md shadow-amber-200/50'
-                        : 'border-slate-200 bg-white/90'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        {isPrem && (
-                          <span className="text-[10px] font-bold uppercase text-amber-700 bg-amber-200/80 px-2 py-0.5 rounded-full">
-                            Recommended
-                          </span>
-                        )}
-                        <p className={`font-black ${isPrem ? 'text-amber-950' : 'text-slate-900'}`}>{plan.name}</p>
-                        <p className="text-xs text-slate-500">{plan.period}</p>
-                      </div>
-                      <p className={`font-black shrink-0 ${isPrem ? 'text-amber-700' : 'text-blue-700'}`}>
-                        {Number(plan.price) <= 0
-                          ? 'Free'
-                          : `${pricing.currency || 'KES'} ${Number(plan.price).toLocaleString()}`}
-                      </p>
-                    </div>
-                    {plan.features?.length > 0 && (
-                      <ul className="mt-2 text-xs text-slate-600 list-disc pl-4 space-y-0.5">
-                        {plan.features.slice(0, 5).map((f) => (
-                          <li key={f}>{f}</li>
-                        ))}
-                      </ul>
-                    )}
-                    <button
-                      type="button"
-                      disabled={payBusy}
-                      className={`w-full mt-3 text-sm font-bold py-2.5 rounded-xl text-white ${
-                        isPrem ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-blue-600'
+            <div className="grid gap-3 max-h-[55vh] overflow-y-auto">
+              {[...(pricing?.plans?.length ? pricing.plans : DEFAULT_PLANS.plans)]
+                .slice()
+                .sort((a, b) => (b.id === 'premium' ? 1 : 0) - (a.id === 'premium' ? 1 : 0) || Number(b.price || 0) - Number(a.price || 0))
+                .map((plan) => {
+                  const isPrem = plan.id === 'premium' || plan.highlight
+                  return (
+                    <div
+                      key={plan.id || plan.name}
+                      className={`rounded-xl p-4 text-left border-2 ${
+                        isPrem
+                          ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50'
+                          : 'border-slate-200 bg-slate-50'
                       }`}
-                      onClick={() => subscribePlan(plan)}
                     >
-                      {Number(plan.price) <= 0 ? 'Start free' : isPrem ? 'Go Premium' : 'Get Basic'}
-                    </button>
-                  </div>
-                )
-              })}
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          {isPrem && (
+                            <span className="text-[10px] font-bold uppercase text-amber-800 bg-amber-200 px-2 py-0.5 rounded-full">
+                              Recommended
+                            </span>
+                          )}
+                          <p className={`font-black text-lg ${isPrem ? 'text-amber-950' : 'text-slate-900'}`}>{plan.name}</p>
+                          <p className="text-xs text-slate-500">{plan.period || 'per term'}</p>
+                        </div>
+                        <p className={`font-black text-lg shrink-0 ${isPrem ? 'text-amber-700' : 'text-blue-700'}`}>
+                          {Number(plan.price) <= 0
+                            ? 'Free'
+                            : `${pricing.currency || 'KES'} ${Number(plan.price).toLocaleString()}`}
+                        </p>
+                      </div>
+                      {Array.isArray(plan.features) && plan.features.length > 0 && (
+                        <ul className="mt-2 text-xs text-slate-700 list-disc pl-4 space-y-0.5">
+                          {plan.features.slice(0, 6).map((f) => (
+                            <li key={f}>{f}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <button
+                        type="button"
+                        disabled={payBusy}
+                        className={`w-full mt-3 text-sm font-bold py-3 rounded-xl text-white ${
+                          isPrem ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-blue-600'
+                        }`}
+                        onClick={() => subscribePlan(plan)}
+                      >
+                        {payBusy ? 'Please wait…' : Number(plan.price) <= 0 ? 'Start free' : isPrem ? 'Go Premium — Pay' : 'Get Basic — Pay'}
+                      </button>
+                    </div>
+                  )
+                })}
+            </div>
+
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs font-bold text-white/90">
-          <button type="button" className="underline" onClick={() => setView('pricing')}>All plans</button>
+          <button type="button" className="underline" onClick={() => setShowPricing(true)}>Plans</button>
           <button type="button" className="underline" onClick={() => setView('how')}>How it works</button>
           <button type="button" className="underline" onClick={() => setView('terms')}>Terms</button>
           <button type="button" className="underline" onClick={() => setView('contact')}>Contact</button>

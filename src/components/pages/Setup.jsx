@@ -306,6 +306,22 @@ function GradesSubjectsTab({ school }) {
     fetchAll()
   }
 
+  const deleteGrade = async (g) => {
+    if (!confirm(`Delete grade "${g.grade_name}"?`)) return
+    setError('')
+    const { error } = await supabase.from('grades').delete().eq('id', g.id)
+    if (error) return setError(error.message.includes('foreign') || error.code === '23503' ? 'Cannot delete: grade still has students or linked data.' : error.message)
+    fetchAll()
+  }
+
+  const deleteSubject = async (sub) => {
+    if (!confirm(`Delete subject "${sub.subject_name}"?`)) return
+    setError('')
+    const { error } = await supabase.from('subjects').delete().eq('id', sub.id)
+    if (error) return setError(error.message.includes('foreign') || error.code === '23503' ? 'Cannot delete: subject still linked to exams or allocations.' : error.message)
+    fetchAll()
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card title="Grades / classes">
@@ -324,8 +340,9 @@ function GradesSubjectsTab({ school }) {
         ) : (
           <ul className="divide-y">
             {grades.map((g) => (
-              <li key={g.id} className="py-2 text-gray-800">
-                {g.grade_name}
+              <li key={g.id} className="py-2 text-gray-800 flex items-center justify-between gap-2">
+                <span>{g.grade_name}</span>
+                <button type="button" onClick={() => deleteGrade(g)} className="text-red-600 text-sm font-semibold hover:underline shrink-0">Delete</button>
               </li>
             ))}
             {grades.length === 0 && <p className="text-gray-500 text-sm py-2">No grades yet</p>}
@@ -349,8 +366,9 @@ function GradesSubjectsTab({ school }) {
         ) : (
           <ul className="divide-y">
             {subjects.map((s) => (
-              <li key={s.id} className="py-2 text-gray-800">
-                {s.subject_name}
+              <li key={s.id} className="py-2 text-gray-800 flex items-center justify-between gap-2">
+                <span>{s.subject_name}</span>
+                <button type="button" onClick={() => deleteSubject(s)} className="text-red-600 text-sm font-semibold hover:underline shrink-0">Delete</button>
               </li>
             ))}
             {subjects.length === 0 && <p className="text-gray-500 text-sm py-2">No subjects yet</p>}
@@ -480,6 +498,14 @@ function CalendarTab({ school }) {
     fetchEvents()
   }
 
+  const deleteEvent = async (ev) => {
+    if (!confirm(`Delete event "${ev.event_name}"?`)) return
+    setError('')
+    const { error } = await supabase.from('school_events').delete().eq('id', ev.id)
+    if (error) return setError(error.message)
+    fetchEvents()
+  }
+
   return (
     <div className="space-y-6">
       <Card title="CBC / curriculum grade templates">
@@ -515,10 +541,13 @@ function CalendarTab({ school }) {
         ) : (
           <ul className="divide-y">
             {events.map((e) => (
-              <li key={e.id} className="p-4">
-                <p className="font-semibold text-gray-800">{e.event_name}</p>
-                <p className="text-sm text-gray-600">{new Date(e.event_date).toLocaleDateString('en-GB')}</p>
-                {e.description && <p className="text-sm text-gray-700 mt-1">{e.description}</p>}
+              <li key={e.id} className="p-4 flex justify-between gap-3 items-start">
+                <div>
+                  <p className="font-semibold text-gray-800">{e.event_name}</p>
+                  <p className="text-sm text-gray-600">{new Date(e.event_date).toLocaleDateString('en-GB')}</p>
+                  {e.description && <p className="text-sm text-gray-700 mt-1">{e.description}</p>}
+                </div>
+                <button type="button" onClick={() => deleteEvent(e)} className="text-red-600 text-sm font-semibold hover:underline shrink-0">Delete</button>
               </li>
             ))}
           </ul>
@@ -550,6 +579,13 @@ function FeeHeadsTab({ school }) {
     setName('')
     load()
   }
+  const deleteHead = async (h) => {
+    if (!confirm(`Delete fee head "${h.head_name}"?`)) return
+    setError('')
+    const { error } = await supabase.from('fee_heads').delete().eq('id', h.id)
+    if (error) return setError(error.message)
+    load()
+  }
   return (
     <Card title="Fee heads (tuition, lunch, transport…)">
       <p className="text-sm text-slate-600 mb-3">Define components. Use totals on Fee Structure for now; itemized amounts can deepen later.</p>
@@ -559,7 +595,12 @@ function FeeHeadsTab({ school }) {
       </form>
       <Alert>{error}</Alert>
       <ul className="mt-3 text-sm space-y-1">
-        {heads.map((h) => <li key={h.id}>{h.head_name}</li>)}
+        {heads.map((h) => (
+          <li key={h.id} className="flex justify-between items-center gap-2 py-1">
+            <span>{h.head_name}</span>
+            <button type="button" onClick={() => deleteHead(h)} className="text-red-600 text-sm font-semibold hover:underline">Delete</button>
+          </li>
+        ))}
       </ul>
     </Card>
   )
@@ -1146,9 +1187,10 @@ function StaffTab({ school, user }) {
 
 function PaymentSettingsTab({ school }) {
   const [paybill, setPaybill] = useState(school.mpesa_paybill || '')
+  const [till, setTill] = useState(school.mpesa_till || '')
+  const [phone, setPhone] = useState(school.mpesa_phone || '')
   const [acc, setAcc] = useState(school.mpesa_account_ref || '')
   const [instr, setInstr] = useState(school.fee_payment_instructions || '')
-  const [ikey, setIkey] = useState(school.intasend_publishable_key || '')
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [saving, setSaving] = useState(false)
@@ -1162,28 +1204,30 @@ function PaymentSettingsTab({ school }) {
       .from('schools')
       .update({
         mpesa_paybill: paybill || null,
+        mpesa_till: till || null,
+        mpesa_phone: phone || null,
         mpesa_account_ref: acc || null,
         fee_payment_instructions: instr || null,
-        intasend_publishable_key: ikey || null,
       })
       .eq('id', school.id)
     setSaving(false)
     if (error) return setError(error.message)
-    setOk('Payment settings saved.')
+    setOk('Payment settings saved. Parents will see Paybill/Till on the parent portal.')
     try { await logAudit('school.payment_settings', 'schools', school.id, {}) } catch (_) {}
   }
 
   return (
-    <Card title="Fee payment rails (school)">
+    <Card title="Fee payment (Paybill / Till / phone)">
       <p className="text-sm text-slate-600 mb-3">
-        Paybill and instructions for fee reminders. STK push can use IntaSend later with school keys.
-        ShuleKit SaaS billing stays on platform IntaSend.
+        Parents pay <strong>directly</strong> to your Till or Paybill on M-Pesa. ShuleKit never collects school fees.
+        After a parent pays, record the payment under <strong>Student Finance</strong> so their balance updates.
       </p>
       <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input className={input} placeholder="M-Pesa Paybill / Till" value={paybill} onChange={(e) => setPaybill(e.target.value)} />
-        <input className={input} placeholder="Account reference hint" value={acc} onChange={(e) => setAcc(e.target.value)} />
-        <input className={input} placeholder="IntaSend publishable key (optional)" value={ikey} onChange={(e) => setIkey(e.target.value)} />
-        <textarea className={`${input} md:col-span-2`} placeholder="Payment instructions for parents" value={instr} onChange={(e) => setInstr(e.target.value)} />
+        <input className={input} placeholder="M-Pesa Paybill number" value={paybill} onChange={(e) => setPaybill(e.target.value)} />
+        <input className={input} placeholder="Till number (buy goods)" value={till} onChange={(e) => setTill(e.target.value)} />
+        <input className={input} placeholder="School M-Pesa phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <input className={input} placeholder="Account reference (e.g. school code)" value={acc} onChange={(e) => setAcc(e.target.value)} />
+        <textarea className={`${input} md:col-span-2`} rows={3} placeholder="Extra instructions for parents" value={instr} onChange={(e) => setInstr(e.target.value)} />
         <div className="md:col-span-2 space-y-2">
           <Alert>{error}</Alert>
           <Alert kind="ok">{ok}</Alert>
