@@ -53,9 +53,10 @@ export default function Login() {
     })()
   }, [])
 
-  const subscribePlan = async (plan) => {
+  const subscribePlan = async (plan, { cardCheckout = false } = {}) => {
     setPayBusy(true)
     setError('')
+    setInfo('')
     try {
       if (!plan.price || Number(plan.price) <= 0) {
         setInfo(`${plan.name} is free — register your school, then start using ShuleKit.`)
@@ -66,15 +67,20 @@ export default function Login() {
         setPayBusy(false)
         return
       }
-      if (!payPhone) {
-        setError('Enter your M-Pesa number for STK (recommended), or leave blank only if you must use full card checkout.')
-        // Still allow hosted if no phone
+      // Card / full IntaSend page only if user explicitly chooses it
+      if (cardCheckout) {
         await hostedCheckoutPlatform({
           amount: Number(plan.price),
           email: email || undefined,
+          phone: payPhone || undefined,
           apiRef: `plan-${plan.id}-pending-${Date.now()}`,
           comment: `ShuleKit ${plan.name}`,
         })
+        setPayBusy(false)
+        return
+      }
+      if (!payPhone || payPhone.replace(/\D/g, '').length < 9) {
+        setError('Enter a valid M-Pesa number (e.g. 07XXXXXXXX) to receive the STK prompt on your phone.')
         setPayBusy(false)
         return
       }
@@ -85,22 +91,14 @@ export default function Login() {
       })
       setInfo(
         result.message ||
-          `STK sent for KES ${result.amount}. Enter your M-Pesa PIN. After payment, register as Principal — plan activates when webhook confirms.`
+          `STK sent for KES ${result.amount || plan.price}. Check your phone and enter your M-Pesa PIN. Stay on this page — then register as Principal after paying.`
       )
-      setShowPricing(false)
+      // Stay in modal so user sees success message (no redirect)
     } catch (e) {
-      // Fallback hosted only with platform key
-      try {
-        await hostedCheckoutPlatform({
-          amount: Number(plan.price),
-          email: email || undefined,
-          phone: payPhone || undefined,
-          apiRef: `plan-${plan.id}-pending-${Date.now()}`,
-          comment: `ShuleKit ${plan.name}`,
-        })
-      } catch (e2) {
-        setError(e?.message || e2?.message || 'Payment could not start')
-      }
+      setError(
+        (e?.message || 'STK could not start') +
+          ' — Check that INTASEND_SECRET_KEY is set on Netlify and redeployed. Or use “Pay by card / other methods” below.'
+      )
     }
     setPayBusy(false)
   }
@@ -493,16 +491,26 @@ export default function Login() {
                   ×
                 </button>
               </div>
-              <p className="text-sm text-slate-600">Pay with M-Pesa or card. After payment, register or log in as Principal.</p>
+              <p className="text-sm text-slate-600">
+                Enter your details, choose a plan, then confirm on your phone (STK). You stay on ShuleKit — no redirect for M-Pesa.
+              </p>
               <Alert>{error}</Alert>
               <Alert kind="ok">{info}</Alert>
-
-            <input
-              className={input}
-              placeholder="M-Pesa number (07…) for STK — optional"
-              value={payPhone}
-              onChange={(e) => setPayPhone(e.target.value)}
-            />
+              <input
+                className={input}
+                type="email"
+                placeholder="Email (for receipt)"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+              <input
+                className={input}
+                inputMode="tel"
+                placeholder="M-Pesa number (07XXXXXXXX) — required for STK"
+                value={payPhone}
+                onChange={(e) => setPayPhone(e.target.value)}
+              />
             <div className="grid gap-3 max-h-[55vh] overflow-y-auto">
               {[...(pricing?.plans?.length ? pricing.plans : DEFAULT_PLANS.plans)]
                 .slice()
@@ -549,8 +557,18 @@ export default function Login() {
                         }`}
                         onClick={() => subscribePlan(plan)}
                       >
-                        {payBusy ? 'Please wait…' : Number(plan.price) <= 0 ? 'Start free' : isPrem ? 'Go Premium — Pay' : 'Get Basic — Pay'}
+                        {payBusy ? 'Sending STK…' : Number(plan.price) <= 0 ? 'Start free' : 'Pay with M-Pesa STK'}
                       </button>
+                      {Number(plan.price) > 0 && (
+                        <button
+                          type="button"
+                          disabled={payBusy}
+                          className="w-full mt-2 text-xs font-semibold py-2 rounded-xl border border-slate-300 text-slate-600 bg-white hover:bg-slate-50"
+                          onClick={() => subscribePlan(plan, { cardCheckout: true })}
+                        >
+                          Pay by card / other methods (opens IntaSend)
+                        </button>
+                      )}
                     </div>
                   )
                 })}
