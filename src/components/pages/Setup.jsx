@@ -642,8 +642,6 @@ function SchoolIdentityTab({ school, user }) {
             maxW={400}
             previewClass="h-16 object-contain rounded-lg border"
           />
-            </div>
-          )}
         </div>
         <input className={input} placeholder="P.O. Box" value={form.po_box} onChange={(e) => setForm({ ...form, po_box: e.target.value })} disabled={!canEdit} />
         <input className={input} placeholder="Physical address" value={form.physical_address} onChange={(e) => setForm({ ...form, physical_address: e.target.value })} disabled={!canEdit} />
