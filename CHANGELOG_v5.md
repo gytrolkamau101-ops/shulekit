@@ -1,4 +1,4 @@
-# ShuleKit
+# ShuleMoja
 
 ## Shipped
 1. **Terms** — edit and delete (blocked if current or FK-linked data)

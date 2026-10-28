@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import ImagePicker from '../ImagePicker'
 import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, PageTitle, input, btn, btnGreen, btnGhost, th, td, fmt } from '../ui'
 import { logAudit } from '../../lib/audit'
@@ -633,7 +634,17 @@ function SchoolIdentityTab({ school, user }) {
     <Card title="School identity (receipts & reports)">
       <form onSubmit={save} className="space-y-3">
         <input className={input} placeholder="School name" value={form.school_name} onChange={(e) => setForm({ ...form, school_name: e.target.value })} required disabled={!canEdit} />
-        <input className={input} placeholder="Logo URL (https://…)" value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} disabled={!canEdit} />
+        <div className="space-y-2">
+          <ImagePicker
+            label="School logo"
+            value={form.logo_url || ''}
+            onChange={(url) => setForm((prev) => ({ ...prev, logo_url: url }))}
+            maxW={400}
+            previewClass="h-16 object-contain rounded-lg border"
+          />
+            </div>
+          )}
+        </div>
         <input className={input} placeholder="P.O. Box" value={form.po_box} onChange={(e) => setForm({ ...form, po_box: e.target.value })} disabled={!canEdit} />
         <input className={input} placeholder="Physical address" value={form.physical_address} onChange={(e) => setForm({ ...form, physical_address: e.target.value })} disabled={!canEdit} />
         <input className={input} placeholder="Motto" value={form.motto} onChange={(e) => setForm({ ...form, motto: e.target.value })} disabled={!canEdit} />
@@ -1219,7 +1230,7 @@ function PaymentSettingsTab({ school }) {
   return (
     <Card title="Fee payment (Paybill / Till / phone)">
       <p className="text-sm text-slate-600 mb-3">
-        Parents pay <strong>directly</strong> to your Till or Paybill on M-Pesa. ShuleKit never collects school fees.
+        Parents pay <strong>directly</strong> to your Till or Paybill on M-Pesa. ShuleMoja never collects school fees.
         After a parent pays, record the payment under <strong>Student Finance</strong> so their balance updates.
       </p>
       <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -1,4 +1,4 @@
-# ShuleKit v10
+# ShuleMoja v10
 
 ## Import from Excel / Word
 - Import centre: CSV templates (Excel/Sheets), upload students, fees, admissions

@@ -1,4 +1,4 @@
--- ShuleKit v10 — fee heads, circulars, admissions (run after 01–09)
+-- ShuleMoja v10 — fee heads, circulars, admissions (run after 01–09)
 
 create table if not exists public.fee_heads (
   id uuid primary key default gen_random_uuid(),

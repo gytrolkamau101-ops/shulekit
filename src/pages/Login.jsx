@@ -4,6 +4,7 @@ import { input, btn, btnGreen, Alert, PasswordInput, Spinner } from '../componen
 import { getSettings } from '../lib/platform'
 import { payPlatformPlan, hostedCheckoutPlatform } from '../lib/intasend'
 import { DEFAULT_PLANS } from '../lib/plans'
+import { BRAND_NAME, COMPANY_NAME, TAGLINE, LOGO_TEXT, LOGO_C2, PRODUCT_LINE, COUNTRY_LINE, COPYRIGHT } from '../brand'
 
 
 
@@ -25,14 +26,62 @@ export default function Login() {
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [view, setView] = useState('auth') // auth | pricing | terms | how | contact
-  const [theme, setTheme] = useState({ primary: '#1d4ed8', logo_text: 'SK', bg_from: '#0f172a', bg_to: '#1e3a8a', bg_style: 'gradient' })
+  const [theme, setTheme] = useState({
+    primary: '#1d4ed8',
+    logo_text: 'SM',
+    bg_from: '#0f172a',
+    bg_to: '#1e3a8a',
+    bg_style: 'gradient',
+    brand_logo_url: '',
+    brand_name: BRAND_NAME,
+    tagline: TAGLINE,
+    product_line: PRODUCT_LINE,
+    country_line: COUNTRY_LINE,
+    company_line: COMPANY_NAME,
+    login_subtext:
+      'Fees, exams, parents & terms — not a school directory. School fee money goes to your Till/Paybill.',
+    footer_text: COPYRIGHT,
+  })
   const [pricing, setPricing] = useState(DEFAULT_PLANS)
-  const [terms, setTerms] = useState(null)
-  const [how, setHow] = useState(null)
-  const [contacts, setContacts] = useState(null)
+  const [terms, setTerms] = useState({
+    title: 'Terms & Conditions',
+    body: `ShuleMoja is a school management service by BigDataKE Technologies.
+
+1. Accounts. Schools register and appoint staff. You must provide accurate information and keep login credentials secure.
+2. Subscriptions. Basic and Premium plans are billed per term (or as shown on the pricing page). Payment is for access to the ShuleMoja platform only.
+3. School fees. Fees paid by parents to a school’s Paybill or Till go directly to that school. BigDataKE / ShuleMoja does not collect or hold school fee money.
+4. Data. School data remains under the school’s control. You are responsible for lawful processing of student and parent data under applicable Kenyan law.
+5. Acceptable use. Do not misuse the system, attempt unauthorised access, or upload unlawful content.
+6. Availability. We aim for reliable service but do not guarantee uninterrupted access (network, hosting, or third-party outages may occur).
+7. Limitation. To the extent permitted by law, liability is limited to subscription fees paid for the current term.
+8. Changes. Terms or pricing may be updated; continued use after notice constitutes acceptance.
+9. Contact. Use the Contact page or email provided by the Super Admin.
+
+By using ShuleMoja you agree to these terms.`,
+  })
+  const [how, setHow] = useState({
+    title: 'How ShuleMoja works',
+    body: `1. Subscribe — Choose Basic or Premium and pay the platform fee (M-Pesa STK on this site).
+2. Register your school — Create a Principal account and school profile (primary or secondary).
+3. Set up — Add the current term, grades, subjects, fee structure, and staff.
+4. Enrol students — Add learners (with optional passport photo) and assign classes.
+5. Run the school — Record fees, exams, attendance (Premium), messages (Premium), and more.
+6. Parents — Guardians register with the school code and admission number to view balances, results, and pay instructions for the school’s Till/Paybill.
+
+Basic includes core records and finance. Premium unlocks Messages, Attendance, Timetable, Circulars, and Import Centre.`,
+  })
+  const [contacts, setContacts] = useState({
+    title: 'Contact us',
+    email: 'support@bigdatake.example',
+    phone: '',
+    whatsapp: '',
+    address: 'Kenya — BigDataKE Technologies',
+  })
   const [payBusy, setPayBusy] = useState(false)
   const [payPhone, setPayPhone] = useState('')
   const [showPricing, setShowPricing] = useState(false)
+  const [payStep, setPayStep] = useState(null) // plan object when collecting phone/email
+  const [agreedTerms, setAgreedTerms] = useState(false)
 
   const reset = () => {
     setError('')
@@ -53,34 +102,50 @@ export default function Login() {
     })()
   }, [])
 
+  const openPayForm = (plan) => {
+    setError('')
+    setInfo('')
+    if (!plan.price || Number(plan.price) <= 0) {
+      setInfo(`${plan.name} is free — register your school, then start using ShuleMoja.`)
+      setShowPricing(false)
+      setMode('register')
+      setRegType('new')
+      return
+    }
+    if (!agreedTerms) {
+      setError('Please tick “I agree to the Terms & Conditions” before paying.')
+      return
+    }
+    setPayStep(plan)
+  }
+
   const subscribePlan = async (plan, { cardCheckout = false } = {}) => {
     setPayBusy(true)
     setError('')
     setInfo('')
     try {
       if (!plan.price || Number(plan.price) <= 0) {
-        setInfo(`${plan.name} is free — register your school, then start using ShuleKit.`)
+        setInfo(`${plan.name} is free — register your school, then start using ShuleMoja.`)
+        setPayStep(null)
         setShowPricing(false)
-        setView('auth')
         setMode('register')
         setRegType('new')
         setPayBusy(false)
         return
       }
-      // Card / full IntaSend page only if user explicitly chooses it
       if (cardCheckout) {
         await hostedCheckoutPlatform({
           amount: Number(plan.price),
           email: email || undefined,
           phone: payPhone || undefined,
           apiRef: `plan-${plan.id}-pending-${Date.now()}`,
-          comment: `ShuleKit ${plan.name}`,
+          comment: `ShuleMoja ${plan.name}`,
         })
         setPayBusy(false)
         return
       }
       if (!payPhone || payPhone.replace(/\D/g, '').length < 9) {
-        setError('Enter a valid M-Pesa number (e.g. 07XXXXXXXX) to receive the STK prompt on your phone.')
+        setError('Enter a valid M-Pesa number (e.g. 07XXXXXXXX).')
         setPayBusy(false)
         return
       }
@@ -91,13 +156,13 @@ export default function Login() {
       })
       setInfo(
         result.message ||
-          `STK sent for KES ${result.amount || plan.price}. Check your phone and enter your M-Pesa PIN. Stay on this page — then register as Principal after paying.`
+          `STK sent for KES ${result.amount || plan.price}. Enter your M-Pesa PIN on the phone, then register as Principal.`
       )
-      // Stay in modal so user sees success message (no redirect)
+      setPayStep(null)
     } catch (e) {
       setError(
         (e?.message || 'STK could not start') +
-          ' — Check that INTASEND_SECRET_KEY is set on Netlify and redeployed. Or use “Pay by card / other methods” below.'
+          ' — Ensure INTASEND_SECRET_KEY is on Netlify and the site was redeployed.'
       )
     }
     setPayBusy(false)
@@ -122,6 +187,10 @@ export default function Login() {
   const handleRegister = async (e) => {
     e.preventDefault()
     reset()
+    if (!agreedTerms) {
+      setError('Please agree to the Terms & Conditions to create an account.')
+      return
+    }
     if (accountType === 'staff' && regType === 'join' && codeSchool === 'not-found') {
       setError('School code not found. Ask your Principal for the correct code.')
       return
@@ -129,6 +198,22 @@ export default function Login() {
     if (accountType === 'parent' && codeSchool === 'not-found') {
       setError('School code not found. Ask the school for the correct code.')
       return
+    }
+    if (accountType === 'staff' && regType === 'new') {
+      const code = (referralCode || '').trim()
+      if (!code) {
+        setError('A referral code is required to register a new school. Ask the school that invited you, or contact support.')
+        return
+      }
+      const { data: v, error: ve } = await supabase.rpc('validate_referral_code', { p_code: code })
+      if (ve) {
+        setError(ve.message || 'Could not validate referral code')
+        return
+      }
+      if (!v || !v.ok) {
+        setError((v && v.error) || 'Invalid referral code')
+        return
+      }
     }
     setBusy(true)
     let meta
@@ -142,7 +227,7 @@ export default function Login() {
     } else {
       meta =
         regType === 'new'
-          ? { full_name: fullName, school_name: schoolName, school_level: schoolLevel, referral_code: referralCode }
+          ? { full_name: fullName, school_name: schoolName, school_level: schoolLevel, referral_code: referralCode.trim().toUpperCase() }
           : { full_name: fullName, school_code: schoolCode, role }
     }
     const { data, error } = await supabase.auth.signUp({
@@ -234,7 +319,7 @@ export default function Login() {
                       type="button"
                       disabled={payBusy}
                       className={`${btnGreen} w-full mt-3`}
-                      onClick={() => subscribePlan(plan)}
+                      onClick={() => openPayForm(plan)}
                     >
                       {Number(plan.price) <= 0 ? 'Start free' : 'Pay & subscribe'}
                     </button>
@@ -271,18 +356,28 @@ export default function Login() {
       <div className="pointer-events-none absolute -bottom-32 -right-16 w-96 h-96 rounded-full bg-blue-500/25 blur-3xl" />
 
       <div className="relative w-full max-w-md sk-animate-in">
-        <div className="text-center mb-6">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-xl mb-4 text-white font-black text-2xl"
-            style={{ background: theme.primary || '#1d4ed8' }}
-          >
-            {theme.logo_text || 'SK'}
-          </div>
-          <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-sm">ShuleKit</h1>
-          <p className="text-cyan-100/90 mt-1 text-sm font-medium">by BigDataKE Technologies</p>
+        <div className="text-center mb-4">
+          <img
+            src={theme.brand_logo_url || LOGO_C2}
+            alt={`${theme.brand_name || BRAND_NAME} — ${theme.product_line || PRODUCT_LINE}`}
+            className="mx-auto w-full max-w-md rounded-2xl shadow-2xl shadow-black/50 border border-white/15 object-contain bg-[#0a1628]"
+          />
+          <p className="text-cyan-100/85 mt-3 text-[11px] font-semibold tracking-[0.14em] uppercase">
+            {(theme.product_line || PRODUCT_LINE)}
+            {(theme.product_line || PRODUCT_LINE) && (theme.country_line || COUNTRY_LINE) ? ' · ' : ''}
+            {theme.country_line || COUNTRY_LINE}
+          </p>
+          {(theme.company_line || COMPANY_NAME) && (
+            <p className="text-cyan-100/55 text-[11px] mt-0.5">by {theme.company_line || COMPANY_NAME}</p>
+          )}
+          {(theme.login_subtext || '').trim() !== '' && (
+            <p className="text-slate-300/70 text-[11px] mt-2 max-w-sm mx-auto leading-relaxed">
+              {theme.login_subtext}
+            </p>
+          )}
         </div>
 
-        <div className="sk-glass rounded-2xl p-6 md:p-8">
+        <div className="rounded-2xl border-2 border-white/20 bg-white shadow-2xl shadow-black/30 p-6 md:p-8 ring-1 ring-black/5">
           {mode === 'register' && (
             <div className="flex gap-1 p-1 mb-5 bg-slate-100 rounded-xl">
               <button
@@ -350,11 +445,13 @@ export default function Login() {
                     <option value="combined">Combined primary + secondary</option>
                   </select>
                   <input
-                    className={input}
-                    placeholder="Referral code (optional)"
+                    className={`${input} uppercase`}
+                    placeholder="Referral code (required) e.g. SM-7K3M9Q"
                     value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value)}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    required
                   />
+                  <p className="text-xs text-slate-500">Valid code required. 1‑month free trial starts after registration.</p>
                   </>
                 ) : (
                   <>
@@ -431,7 +528,29 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
-            <button disabled={busy} className={`${btn} w-full py-3.5 text-base`}>
+            {mode === 'register' && (
+              <label className="flex items-start gap-2 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1 shrink-0"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                  required
+                />
+                <span>
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    className="text-blue-700 font-bold underline"
+                    onClick={() => setView('terms')}
+                  >
+                    Terms &amp; Conditions
+                  </button>
+                  {' '}and understand school fees are paid to the school, not through ShuleMoja platform fee collection.
+                </span>
+              </label>
+            )}
+            <button disabled={busy || (mode === 'register' && !agreedTerms)} className={`${btn} w-full py-3.5 text-base font-black shadow-lg shadow-blue-600/30 border border-blue-500/30`}>
               {busy ? (
                 <>
                   <Spinner /> Please wait...
@@ -470,7 +589,7 @@ export default function Login() {
             setInfo('')
             setShowPricing(true)
           }}
-          className="mt-6 w-full py-5 rounded-2xl text-xl font-black text-white shadow-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 active:scale-[0.99] transition"
+          className="mt-6 w-full py-5 rounded-2xl text-xl font-black text-white border-2 border-amber-300 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 active:scale-[0.99] transition sk-subscribe-pulse"
         >
           Subscribe
         </button>
@@ -492,25 +611,25 @@ export default function Login() {
                 </button>
               </div>
               <p className="text-sm text-slate-600">
-                Enter your details, choose a plan, then confirm on your phone (STK). You stay on ShuleKit — no redirect for M-Pesa.
+                Enter your details, choose a plan, then confirm on your phone (STK). You stay on ShuleMoja — no redirect for M-Pesa.
               </p>
               <Alert>{error}</Alert>
               <Alert kind="ok">{info}</Alert>
-              <input
-                className={input}
-                type="email"
-                placeholder="Email (for receipt)"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-              <input
-                className={input}
-                inputMode="tel"
-                placeholder="M-Pesa number (07XXXXXXXX) — required for STK"
-                value={payPhone}
-                onChange={(e) => setPayPhone(e.target.value)}
-              />
+              <label className="flex items-start gap-2 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                />
+                <span>
+                  I have read and agree to the{' '}
+                  <button type="button" className="text-blue-700 font-bold underline" onClick={() => { setShowPricing(false); setView('terms') }}>
+                    Terms &amp; Conditions
+                  </button>
+                  . School fees are paid to each school; ShuleMoja only bills platform subscriptions.
+                </span>
+              </label>
             <div className="grid gap-3 max-h-[55vh] overflow-y-auto">
               {[...(pricing?.plans?.length ? pricing.plans : DEFAULT_PLANS.plans)]
                 .slice()
@@ -552,28 +671,71 @@ export default function Login() {
                       <button
                         type="button"
                         disabled={payBusy}
-                        className={`w-full mt-3 text-sm font-bold py-3 rounded-xl text-white ${
-                          isPrem ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-blue-600'
+                        className={`w-full mt-3 text-sm font-bold py-3 rounded-xl text-white border-2 shadow-lg ${
+                          isPrem
+                            ? 'border-amber-300 from-amber-500 to-orange-600 bg-gradient-to-r shadow-amber-500/30'
+                            : 'border-blue-300 from-blue-600 to-indigo-600 bg-gradient-to-r shadow-blue-600/30'
                         }`}
-                        onClick={() => subscribePlan(plan)}
+                        onClick={() => openPayForm(plan)}
                       >
-                        {payBusy ? 'Sending STK…' : Number(plan.price) <= 0 ? 'Start free' : 'Pay with M-Pesa STK'}
+                        {Number(plan.price) <= 0 ? 'Start free' : 'Continue to pay'}
                       </button>
-                      {Number(plan.price) > 0 && (
-                        <button
-                          type="button"
-                          disabled={payBusy}
-                          className="w-full mt-2 text-xs font-semibold py-2 rounded-xl border border-slate-300 text-slate-600 bg-white hover:bg-slate-50"
-                          onClick={() => subscribePlan(plan, { cardCheckout: true })}
-                        >
-                          Pay by card / other methods (opens IntaSend)
-                        </button>
-                      )}
                     </div>
                   )
                 })}
             </div>
 
+            </div>
+          </div>
+        )}
+
+
+        {payStep && (
+          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" onClick={() => !payBusy && setPayStep(null)} />
+            <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white shadow-2xl p-5 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-slate-900">Complete payment</h3>
+                <button type="button" className="w-10 h-10 rounded-full bg-slate-100 font-bold" onClick={() => !payBusy && setPayStep(null)}>×</button>
+              </div>
+              <p className="text-sm text-slate-600">
+                <strong>{payStep.name}</strong> — KES {Number(payStep.price).toLocaleString()} ({payStep.period || 'per term'})
+              </p>
+              <Alert>{error}</Alert>
+              <Alert kind="ok">{info}</Alert>
+              <input
+                className={input}
+                type="email"
+                placeholder="Email for receipt"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <input
+                className={input}
+                inputMode="tel"
+                placeholder="M-Pesa number (07XXXXXXXX)"
+                value={payPhone}
+                onChange={(e) => setPayPhone(e.target.value)}
+              />
+              <button
+                type="button"
+                disabled={payBusy}
+                className={`${btnGreen} w-full py-3 border-2 border-emerald-300 shadow-lg`}
+                onClick={() => subscribePlan(payStep)}
+              >
+                {payBusy ? 'Sending STK…' : 'Send M-Pesa STK prompt'}
+              </button>
+              <button
+                type="button"
+                disabled={payBusy}
+                className="w-full text-sm font-semibold py-2.5 rounded-xl border-2 border-slate-300 text-slate-700 bg-white shadow-md"
+                onClick={() => subscribePlan(payStep, { cardCheckout: true })}
+              >
+                Pay by card / other methods
+              </button>
+              <button type="button" className="w-full text-sm text-slate-500 font-medium" disabled={payBusy} onClick={() => setPayStep(null)}>
+                Cancel
+              </button>
             </div>
           </div>
         )}
@@ -585,7 +747,7 @@ export default function Login() {
           <button type="button" className="underline" onClick={() => setView('contact')}>Contact</button>
         </div>
         <p className="mt-4 text-center text-xs text-white/70 font-medium">
-          © BigDataKE Technologies. All rights reserved.
+          {theme.footer_text || COPYRIGHT}
         </p>
       </div>
     </div>

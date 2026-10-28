@@ -1,5 +1,5 @@
 -- ============================================================
--- ShuleKit — Features pack (Deputy, school level, carry-forward,
+-- ShuleMoja — Features pack (Deputy, school level, carry-forward,
 -- promotion, referrals, richer audit helpers)
 -- Run AFTER 01–06
 -- ============================================================

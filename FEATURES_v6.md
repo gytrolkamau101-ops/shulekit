@@ -1,4 +1,4 @@
-# ShuleKit v6
+# ShuleMoja v6
 
 ## Bulk SMS / WhatsApp
 Messages → multi-select parents → Open WhatsApp or Phone SMS app with pre-filled text. Secretary taps Send.

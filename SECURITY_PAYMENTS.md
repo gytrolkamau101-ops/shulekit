@@ -2,8 +2,8 @@
 
 ## School fees
 - Parents pay **school Till / Paybill** on M-Pesa only.
-- ShuleKit **does not** STK-collect school fees into the platform IntaSend account.
+- ShuleMoja **does not** STK-collect school fees into the platform IntaSend account.
 - School staff record payments in **Student Finance**.
 
 ## Platform SaaS (Basic / Premium)
-- Uses platform IntaSend (STK or hosted checkout) only for **ShuleKit subscriptions**.
+- Uses platform IntaSend (STK or hosted checkout) only for **ShuleMoja subscriptions**.

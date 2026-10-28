@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { Card, Scroll, Alert, th, td, fmt, btn, btnGreen, Spinner, input } from '../components/ui'
+import { planEntitlements } from '../lib/plans'
 
 export default function ParentPortal({ session }) {
   const [parent, setParent] = useState(null)
@@ -51,7 +52,7 @@ export default function ParentPortal({ session }) {
     return (
       <div className="min-h-screen sk-mesh-light flex items-center justify-center p-4">
         <div className="sk-glass rounded-2xl p-6 max-w-md text-center space-y-4">
-          <h1 className="text-2xl font-black text-slate-900">ShuleKit — Parent</h1>
+          <h1 className="text-2xl font-black text-slate-900">ShuleMoja — Parent</h1>
           <p className="text-slate-600 text-sm">
             {parent?.status === 'suspended'
               ? 'Your account has been suspended. Please contact the school.'
@@ -72,7 +73,7 @@ export default function ParentPortal({ session }) {
     <div className="min-h-screen sk-mesh-light">
       <header className="bg-white/90 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div>
-          <h1 className="text-xl font-black text-blue-700">ShuleKit</h1>
+          <h1 className="text-xl font-black text-blue-700">ShuleMoja</h1>
           <p className="text-xs text-slate-500">Parent portal · {parent.full_name}</p>
         </div>
         <button onClick={logout} className="px-3 py-2 bg-red-600 text-white rounded-xl text-sm font-bold">
@@ -122,6 +123,10 @@ function ChildDetail({ student, schoolId, session }) {
   const [attendance, setAttendance] = useState([])
   const [loading, setLoading] = useState(true)
   const [schoolPay, setSchoolPay] = useState(null)
+  const [schoolPlan, setSchoolPlan] = useState(null)
+  const [circulars, setCirculars] = useState([])
+  const [timetable, setTimetable] = useState([])
+  const [gradeId, setGradeId] = useState(null)
 
   useEffect(() => {
     ;(async () => {
@@ -134,12 +139,13 @@ function ChildDetail({ student, schoolId, session }) {
           .order('term', { ascending: false }),
         supabase
           .from('schools')
-          .select('mpesa_paybill, mpesa_till, mpesa_phone, mpesa_account_ref, fee_payment_instructions')
+          .select('mpesa_paybill, mpesa_till, mpesa_phone, mpesa_account_ref, fee_payment_instructions, plan, plan_expires_at')
           .eq('id', schoolId)
           .maybeSingle(),
       ])
       setTerms(tlist || [])
       setSchoolPay(sch || null)
+      setSchoolPlan(sch || null)
       const cur = (tlist || []).find((t) => t.is_current) || (tlist || [])[0]
       if (cur) setTermId(cur.id)
     })()
@@ -209,8 +215,42 @@ function ChildDetail({ student, schoolId, session }) {
         .eq('student_id', student.id)
         .order('date', { ascending: false })
         .limit(20)
+      const gid = enr?.grade_id || null
+      setGradeId(gid)
+
+      const { data: schMeta } = await supabase
+        .from('schools')
+        .select('plan, plan_expires_at')
+        .eq('id', schoolId)
+        .maybeSingle()
+      const prem = planEntitlements(schMeta || {})
+      let circ = []
+      let slots = []
+      if (prem.circulars) {
+        const { data: c } = await supabase
+          .from('circulars')
+          .select('*')
+          .eq('school_id', schoolId)
+          .in('audience', ['all', 'parents'])
+          .order('published_at', { ascending: false })
+          .limit(15)
+        circ = c || []
+      }
+      if (prem.timetable && gid && t) {
+        const { data: slotsData } = await supabase
+          .from('timetable_slots')
+          .select('*, subjects(subject_name)')
+          .eq('school_id', schoolId)
+          .eq('term_id', t.id)
+          .eq('grade_id', gid)
+          .order('day_of_week')
+          .order('start_time')
+        slots = slotsData || []
+      }
       if (!alive) return
       setAttendance(att || [])
+      setCirculars(circ)
+      setTimetable(slots)
       setLoading(false)
     })()
     return () => {
@@ -271,7 +311,7 @@ function ChildDetail({ student, schoolId, session }) {
               <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-sm font-bold text-slate-900">How to pay</p>
                 <p className="text-xs text-slate-600">
-                  Pay the school directly on M-Pesa. ShuleKit does not collect school fees — money goes to the school only.
+                  Pay the school directly on M-Pesa. ShuleMoja does not collect school fees — money goes to the school only.
                 </p>
                 {(schoolPay?.mpesa_paybill || schoolPay?.mpesa_till || schoolPay?.mpesa_phone) ? (
                   <div className="text-sm text-slate-800 space-y-1.5 bg-white rounded-xl border border-slate-200 p-3">
@@ -317,7 +357,7 @@ function ChildDetail({ student, schoolId, session }) {
                   </p>
                 )}
                 <p className="text-[11px] text-slate-500">
-                  After you pay, the school records the payment in ShuleKit. Your balance updates when they confirm — usually the same day.
+                  After you pay, the school records the payment in ShuleMoja. Your balance updates when they confirm — usually the same day.
                 </p>
               </div>
             )}

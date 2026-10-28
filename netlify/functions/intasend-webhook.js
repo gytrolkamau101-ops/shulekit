@@ -9,7 +9,7 @@ const PLAN_PRICES = { basic: 2000, premium: 4000 }
 
 export async function handler(event) {
   if (event.httpMethod === 'GET') {
-    return { statusCode: 200, body: 'ShuleKit IntaSend webhook OK' }
+    return { statusCode: 200, body: 'ShuleMoja IntaSend webhook OK' }
   }
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' }
@@ -117,6 +117,13 @@ export async function handler(event) {
         student_cap: cap,
       }),
     })
+    try {
+      await fetch(`${url}/rest/v1/rpc/credit_referrer_on_payment`, {
+        method: 'POST',
+        headers: { ...headers, Prefer: 'return=representation' },
+        body: JSON.stringify({ p_school_id: schoolId, p_plan_id: planId }),
+      })
+    } catch (_) {}
   }
 
   // School fee STK via platform is disabled (v23+). Do not auto-insert fee_payments.

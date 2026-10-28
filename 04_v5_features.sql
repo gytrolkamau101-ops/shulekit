@@ -1,5 +1,5 @@
 -- ============================================================
--- ShuleKit features (run AFTER 01, 02, 03)
+-- ShuleMoja features (run AFTER 01, 02, 03)
 -- - Grade scales (CBC BE/ME/AE or custom)
 -- - Audit log
 -- - Platform super-admins

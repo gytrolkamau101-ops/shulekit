@@ -1,4 +1,4 @@
-# ShuleKit — Setup Guide
+# ShuleMoja — Setup Guide
 
 > Run SQL in order: **01_schema.sql** → **02_parent_portal.sql** → **03_security_fixes.sql** → **04_v7_features.sql**
 >
@@ -31,7 +31,7 @@ Supabase normally requires people to click a confirmation email before logging i
 ## 3. Set up the project on your computer (or ask someone with a laptop to do this part once)
 
 ```bash
-# unzip ShuleKit_Starter.zip first, then inside the shulekit_v7 folder:
+# unzip ShuleMoja_Starter.zip first, then inside the shulekit_v7 folder:
 npm install
 cp .env.example .env
 ```

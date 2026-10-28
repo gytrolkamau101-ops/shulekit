@@ -1,4 +1,4 @@
--- ShuleKit v13 — plans, entitlements, subscription events
+-- ShuleMoja v13 — plans, entitlements, subscription events
 
 alter table public.schools add column if not exists student_cap int default 250;
 alter table public.schools add column if not exists plan_features jsonb default '{}'::jsonb;

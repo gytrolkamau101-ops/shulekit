@@ -101,9 +101,9 @@ export default function Messaging({ school, user, term }) {
         .join(' · ')
 
       const templates = {
-        fees: `Habari, this is ${schoolName}. Fee reminder for ${name} (${termLabel}). ${pay || 'Please clear outstanding fees.'} — ShuleKit`,
-        results: `Habari, ${schoolName}: exam results for ${name} are ready. Open the parent portal or contact the school. — ShuleKit`,
-        attendance: `Habari, ${schoolName}: attendance notice for ${name}. Please contact the class teacher if needed. — ShuleKit`,
+        fees: `Habari, this is ${schoolName}. Fee reminder for ${name} (${termLabel}). ${pay || 'Please clear outstanding fees.'} — ShuleMoja`,
+        results: `Habari, ${schoolName}: exam results for ${name} are ready. Open the parent portal or contact the school. — ShuleMoja`,
+        attendance: `Habari, ${schoolName}: attendance notice for ${name}. Please contact the class teacher if needed. — ShuleMoja`,
         custom: body,
       }
       return templates[template] || body
@@ -205,7 +205,7 @@ export default function Messaging({ school, user, term }) {
       )}
       <Card title="Bulk open SMS / WhatsApp">
         <p className="text-sm text-slate-600 mb-3">
-          Select parents, choose channel, then ShuleKit opens the phone&apos;s SMS or WhatsApp app with the
+          Select parents, choose channel, then ShuleMoja opens the phone&apos;s SMS or WhatsApp app with the
           message filled in. You confirm and send — no paid SMS gateway.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">

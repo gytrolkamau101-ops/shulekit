@@ -124,6 +124,10 @@ export function planEntitlements(school) {
 }
 
 export function canAccessModule(school, moduleId) {
+  if (moduleId === 'support' || moduleId === 'referrals') {
+    const e = planEntitlements(school)
+    return !!(e.messages || e.attendance || e.planId === 'premium' || e.planId === 'trial')
+  }
   if (!PREMIUM_MODULES.includes(moduleId)) return true
   const e = planEntitlements(school)
   return !!e[moduleId]
@@ -142,16 +146,15 @@ export const DEFAULT_PLANS = {
       name: 'Premium',
       price: 4000,
       period: 'per term',
-      days: 120,
       highlight: true,
       features: [
+        'Priority WhatsApp support from BigDataKE',
+        'Invite schools — unlock free Premium terms',
+        'Parents see notices, timetable & clearer fee status',
+        'Attendance that cuts roll-call time',
+        'Messages & circulars — fewer office queues',
+        'Timetable tools + bulk Import Centre',
         'Everything in Basic',
-        'Messages (bulk WhatsApp / SMS)',
-        'Attendance + absent alerts',
-        'Timetable',
-        'Circulars',
-        'Import centre (Excel/CSV)',
-        'Up to 500 learners',
       ],
     },
     {
@@ -159,14 +162,13 @@ export const DEFAULT_PLANS = {
       name: 'Basic',
       price: 2000,
       period: 'per term',
-      days: 120,
-      highlight: false,
       features: [
-        'Students, fees, exams, report cards',
-        'Admissions, resources, school setup',
-        'Parent view portal',
-        'Up to 250 learners',
-        'No Messages / Attendance / Timetable / Circulars / Import',
+        'Students, classes & enrolments',
+        'Fees, balances & arrears records',
+        'Exams & print-ready report cards',
+        'Parent portal: balances & how to pay the school',
+        'School setup, logo & payment instructions',
+        'Email support (public contact)',
       ],
     },
   ],

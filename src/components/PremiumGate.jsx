@@ -1,19 +1,14 @@
-import { planEntitlements } from '../lib/plans'
+import { planEntitlements, isPremium } from '../lib/plans'
 
 export default function PremiumGate({ school, moduleName, children }) {
   const e = planEntitlements(school)
-  const ok =
-    moduleName === 'messages'
-      ? e.messages
-      : moduleName === 'attendance'
-        ? e.attendance
-        : moduleName === 'timetable'
-          ? e.timetable
-          : moduleName === 'circulars'
-            ? e.circulars
-            : moduleName === 'import'
-              ? e.import
-              : true
+  let ok = true
+  if (moduleName === 'messages') ok = !!e.messages
+  else if (moduleName === 'attendance') ok = !!e.attendance
+  else if (moduleName === 'timetable') ok = !!e.timetable
+  else if (moduleName === 'circulars') ok = !!e.circulars
+  else if (moduleName === 'import') ok = !!e.import
+  else if (moduleName === 'support' || moduleName === 'referrals') ok = isPremium(school)
 
   if (ok) return children
 
@@ -22,13 +17,14 @@ export default function PremiumGate({ school, moduleName, children }) {
       <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Premium feature</p>
       <h2 className="text-2xl font-black text-slate-900">{moduleNameLabel(moduleName)}</h2>
       <p className="text-sm text-slate-700">
-        This module is included on the <strong>Premium</strong> plan (KES 4,000 / term). Your school is on{' '}
+        This module is included on the <strong>Premium</strong> plan. Your school is on{' '}
         <strong>{(e.planId || 'basic').toUpperCase()}</strong>
         {e.expired ? ' (expired)' : ''}.
       </p>
       <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
-        <li>Messages, Attendance, Timetable, Circulars, Import centre</li>
-        <li>Upgrade from Login → Choose your plan, or ask the platform admin</li>
+        <li>Messages, Attendance, Timetable, Circulars, Import</li>
+        <li>Contact Support &amp; Invite · Earn tracking</li>
+        <li>Upgrade from Login → Subscribe</li>
       </ul>
     </div>
   )
@@ -41,6 +37,8 @@ function moduleNameLabel(id) {
     timetable: 'Timetable',
     circulars: 'Circulars',
     import: 'Import centre',
+    support: 'Contact Support',
+    referrals: 'Invite · Earn',
   }
   return map[id] || id
 }

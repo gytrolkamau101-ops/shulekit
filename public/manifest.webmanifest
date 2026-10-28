@@ -1,11 +1,11 @@
 {
-  "name": "ShuleKit",
-  "short_name": "ShuleKit",
-  "description": "School management by BigDataKE Technologies",
+  "name": "ShuleMoja",
+  "short_name": "ShuleMoja",
+  "description": "School management by BigDataKE Technologies — Run the school. Keep the history.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme_color": "#1d4ed8",
+  "theme_color": "#0f766e",
   "icons": [
     {
       "src": "/icon.svg",

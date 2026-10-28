@@ -1,4 +1,4 @@
-# ShuleKit
+# ShuleMoja
 
 ## New
 - **Subject baskets** — Setup → Baskets; group subjects; assign to grade + term
@@ -17,7 +17,7 @@ Policies: allow authenticated upload/read for your school paths (or public read 
 
 ## Still later
 - Offline-first sync
-- IntaSend ShuleKit subscriptions
+- IntaSend ShuleMoja subscriptions
 - Per-school parent fee STK
 - SMS/WhatsApp
 - Full NEMIS API sync

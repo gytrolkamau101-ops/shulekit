@@ -1,5 +1,5 @@
 -- ============================================================
--- ShuleKit (run AFTER 01–04)
+-- ShuleMoja (run AFTER 01–04)
 -- Subject baskets, resource files, timetables, fee balance view
 -- ============================================================
 

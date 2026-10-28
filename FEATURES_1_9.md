@@ -1,4 +1,4 @@
-# ShuleKit v4 — Features pack 1–9
+# ShuleMoja v4 — Features pack 1–9
 
 Run **07_features_pack.sql** after 01–06.
 

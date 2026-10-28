@@ -1,5 +1,5 @@
 -- ============================================================
--- ShuleKit — Security hardenings (run AFTER 01 + 02)
+-- ShuleMoja — Security hardenings (run AFTER 01 + 02)
 -- Fixes:
 --  1. Suspended parents could still read terms / fee structures
 --  2. Parents lacked SELECT on enrollments/exams/subjects/grades

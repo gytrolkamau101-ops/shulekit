@@ -1,8 +1,8 @@
-# ShuleKit 1.0.0
+# ShuleMoja 1.0.0
 
 Product rebrand from internal DigiSchool builds.
 
-- **Brand:** ShuleKit
+- **Brand:** ShuleMoja
 - **Owner:** BigDataKE Technologies
 - **Copyright:** © BigDataKE Technologies. All rights reserved.
 

@@ -1,4 +1,4 @@
-# ShuleKit — Debug report
+# ShuleMoja — Debug report
 
 ## Fixes in this build (6.0.1)
 

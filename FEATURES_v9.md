@@ -1,4 +1,4 @@
-# ShuleKit v9
+# ShuleMoja v9
 
 Built on your v7 base + full discussed feature set.
 

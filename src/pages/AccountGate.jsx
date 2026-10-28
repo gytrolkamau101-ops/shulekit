@@ -131,7 +131,7 @@ export default function AccountGate({ session }) {
 
   return (
     <WaitingScreen
-      title="ShuleKit"
+      title="ShuleMoja"
       message={
         error
           ? error

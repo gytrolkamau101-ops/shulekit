@@ -8,7 +8,7 @@ openssl rand -hex 24
 Copy the result. Paste it into IntaSend **Challenge** field.
 
 ## 2. Endpoint URL
-After you deploy ShuleKit to **Netlify**:
+After you deploy ShuleMoja to **Netlify**:
 ```
 https://YOUR-SITE-NAME.netlify.app/.netlify/functions/intasend-webhook
 ```

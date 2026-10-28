@@ -1,4 +1,4 @@
--- ShuleKit debug / ops helpers (optional, safe to re-run)
+-- ShuleMoja debug / ops helpers (optional, safe to re-run)
 
 -- Storage: create bucket in Dashboard named school-resources, then run policies:
 -- (Storage policies are managed in Dashboard UI in many projects; this is reference SQL)

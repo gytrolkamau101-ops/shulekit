@@ -1,71 +1,100 @@
-import { useState, useEffect } from 'react'
-import { queueCount, isOnline } from '../lib/offline'
+import { t } from '../lib/i18n'
 
-export default function TopBar({ school, user, term, onLogout, onMenu }) {
-  const [online, setOnline] = useState(true)
-  const [q, setQ] = useState(0)
-  useEffect(() => {
-    const tick = () => {
-      setOnline(isOnline())
-      setQ(queueCount())
-    }
-    tick()
-    window.addEventListener('online', tick)
-    window.addEventListener('offline', tick)
-    const id = setInterval(tick, 4000)
-    return () => {
-      window.removeEventListener('online', tick)
-      window.removeEventListener('offline', tick)
-      clearInterval(id)
-    }
-  }, [])
+const PAGE_LABELS = {
+  dashboard: 'dashboard',
+  students: 'students',
+  finance: 'fees',
+  exams: 'exams',
+  setup: 'setup',
+  support: 'support',
+  referrals: 'referrals',
+}
 
-  const today = new Date().toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-  const termLabel = term ? `Term ${term.term}, ${term.year}` : 'No term set'
+export default function TopBar({
+  school,
+  user,
+  term,
+  page,
+  onLogout,
+  onMenu,
+  lang = 'en',
+  theme = 'light',
+  onTheme,
+  onLang,
+}) {
+  const titleKey = PAGE_LABELS[page] || page
+  const title = t(lang, titleKey)
 
   return (
-    <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center gap-3 shadow-sm">
-      <button
-        onClick={onMenu}
-        className="md:hidden w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 text-lg"
-        aria-label="Menu"
-      >
-        ☰
-      </button>
-      <div className="min-w-0 flex-1">
-        <h2 className="text-base md:text-lg font-bold text-slate-900 truncate">{school?.school_name}</h2>
-        <p className="text-xs text-slate-500 font-medium">
-          {today}
-          <span className="mx-1.5 text-slate-300">·</span>
-          <span className={term ? 'text-blue-600' : 'text-amber-600'}>{termLabel}</span>
-        </p>
-      </div>
-      <div className="hidden sm:flex items-center gap-3">
-        <div className="text-right">
-          <p className="font-bold text-slate-800 text-sm leading-tight">{user?.full_name}</p>
-          <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">{user?.role}</p>
+    <header className="sm-topbar sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <button
+          type="button"
+          onClick={onMenu}
+          className="shrink-0 h-10 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-sm font-black shadow-md shadow-blue-600/30 border border-blue-400/40"
+        >
+          ☰ {t(lang, 'menu')}
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-sm sm:text-base font-black text-slate-900 truncate leading-tight">
+            {school?.school_name || '—'}
+          </p>
+          <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+            <span className="font-semibold text-slate-700">{title}</span>
+            {term ? (
+              <span className="text-slate-500">
+                {' '}
+                · {t(lang, 'term')} {term.term}/{term.year}
+              </span>
+            ) : (
+              <span className="text-amber-600"> · {t(lang, 'term')} —</span>
+            )}
+          </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
-          {(user?.full_name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="shrink-0 px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100"
+        >
+          {t(lang, 'logout')}
+        </button>
+      </div>
+
+      {/* Theme + language — second row, never clips term */}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[11px] font-bold">
+          {['light', 'dim', 'dark'].map((th) => (
+            <button
+              key={th}
+              type="button"
+              onClick={() => onTheme?.(th)}
+              className={`px-2.5 py-1 capitalize ${
+                theme === th ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+              }`}
+            >
+              {t(lang, th)}
+            </button>
+          ))}
+        </div>
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[11px] font-bold">
+          <button
+            type="button"
+            onClick={() => onLang?.('en')}
+            className={`px-2.5 py-1 ${lang === 'en' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            onClick={() => onLang?.('sw')}
+            className={`px-2.5 py-1 ${lang === 'sw' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}
+          >
+            SW
+          </button>
         </div>
       </div>
-      {!online && (
-        <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-lg">Offline</span>
-      )}
-      {q > 0 && (
-        <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-lg">{q} queued</span>
-      )}
-      <button
-        onClick={onLogout}
-        className="px-3 py-2 rounded-xl text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 transition"
-      >
-        Logout
-      </button>
     </header>
   )
 }

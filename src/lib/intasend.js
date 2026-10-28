@@ -80,7 +80,7 @@ export async function hostedCheckoutPlatform({ amount, email, phone, apiRef, com
     currency: 'KES',
     email: email || 'billing@shulekit.app',
     api_ref: apiRef || `shulekit-${Date.now()}`,
-    comment: comment || 'ShuleKit',
+    comment: comment || 'ShuleMoja',
     redirect_url: typeof window !== 'undefined' ? window.location.href : undefined,
   }
   const ph = normalizeKePhone(phone)

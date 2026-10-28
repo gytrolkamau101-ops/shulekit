@@ -24,7 +24,32 @@ export default function StudentFinance({ school, term }) {
   const [view, setView] = useState('balances') // balances | payments
 
   const fetchAll = useCallback(async () => {
-    if (!term) {
+  
+  const printFeeStatement = (student, paidAmt, bal) => {
+    const w = window.open('', '_blank')
+    if (!w) return toast('Allow pop-ups to print', 'error')
+    const logo = school.logo_url ? `<img src="${school.logo_url}" style="max-height:56px;margin-bottom:8px"/>` : ''
+    w.document.write(`<!doctype html><html><head><title>Fee statement</title>
+      <style>body{font-family:system-ui,sans-serif;padding:24px;color:#0f172a}
+      h1{font-size:18px;margin:0}table{width:100%;border-collapse:collapse;margin-top:16px}
+      th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}
+      .foot{margin-top:24px;font-size:11px;color:#64748b}</style></head><body>
+      ${logo}
+      <h1>${school.school_name || 'School'}</h1>
+      <p>${school.po_box ? 'P.O. Box ' + school.po_box : ''} ${school.physical_address || ''}</p>
+      <h2>Fee statement</h2>
+      <p><strong>${student.first_name} ${student.last_name}</strong> · Adm ${student.admission_no}</p>
+      <p>Term ${term.term}, ${term.year}</p>
+      <table><tr><th>Description</th><th>Amount (KES)</th></tr>
+      <tr><td>Recorded payments (this term)</td><td>${Number(paidAmt).toLocaleString()}</td></tr>
+      <tr><td>Outstanding balance (approx.)</td><td>${bal == null ? '—' : Number(bal).toLocaleString()}</td></tr>
+      </table>
+      <p class="foot">Generated via ShuleMoja · BigDataKE Technologies · Not a bank receipt</p>
+      <script>window.onload=()=>window.print()</script></body></html>`)
+    w.document.close()
+  }
+
+  if (!term) {
       setLoading(false)
       return
     }
@@ -358,6 +383,22 @@ export default function StudentFinance({ school, term }) {
                         ) : (
                           <span className="text-green-700">Cleared</span>
                         )}
+                      </td>
+                      <td className={td}>
+                        <button
+                          type="button"
+                          className="text-xs font-bold text-blue-700 underline"
+                          onClick={() => {
+                            const st = students.find((x) => x.id === b.student_id) || {
+                              first_name: b.name?.split(' ')[0] || '',
+                              last_name: b.name?.split(' ').slice(1).join(' ') || '',
+                              admission_no: b.admission_no || '',
+                            }
+                            printFeeStatement(st, b.paid || 0, b.balance)
+                          }}
+                        >
+                          Print
+                        </button>
                       </td>
                     </tr>
                   ))}

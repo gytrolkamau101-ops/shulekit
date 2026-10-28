@@ -1,3 +1,4 @@
+import { BRAND_NAME, LOGO_TEXT, LOGO_C2, LOGO_ICON } from '../brand'
 import { ALL_STAFF, ADMIN, FINANCE_ROLES, EXAM_ROLES } from '../lib/roles'
 import { PREMIUM_MODULES, canAccessModule } from '../lib/plans'
 
@@ -17,6 +18,8 @@ const ITEMS = [
   { id: 'timetable', label: 'Timetable', icon: '▦', roles: ALL_STAFF, premium: true },
   { id: 'circulars', label: 'Circulars', icon: '✉', roles: ALL_STAFF, premium: true },
   { id: 'import', label: 'Import centre', icon: '⇩', roles: [...ADMIN, 'Secretary'], premium: true },
+  { id: 'support', label: 'Contact Support', icon: '☎', roles: ALL_STAFF, premium: true },
+  { id: 'referrals', label: 'Invite · Earn', icon: '🏆', roles: [...ADMIN, 'Secretary'], premium: true },
 ]
 
 export default function Sidebar({ open, onClose, page, onPage, role, school }) {
@@ -30,19 +33,26 @@ export default function Sidebar({ open, onClose, page, onPage, role, school }) {
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-5 border-b border-white/10">
+        <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-black text-sm shadow-lg shadow-blue-500/30">
-              SK
+            <div className="w-11 h-11 rounded-xl overflow-hidden shadow-lg shadow-blue-500/30 border border-white/20 bg-slate-900 shrink-0">
+              <img src={LOGO_ICON} alt="" className="w-full h-full object-cover" />
             </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tight">ShuleKit</h1>
-              <p className="text-[11px] text-cyan-300/80 font-medium">BigDataKE Technologies</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-black tracking-tight">Menu</h1>
+              <p className="text-[11px] text-cyan-300/80 font-medium truncate">{BRAND_NAME} · BigDataKE</p>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="md:hidden shrink-0 h-10 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/15"
+            >
+              Close
+            </button>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto sk-scroll">
-          <p className="px-2 pt-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Basic</p>
+          <p className="px-2 pt-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Basic features</p>
           {ITEMS.filter((i) => !i.premium && i.roles.includes(role)).map((i) => {
             const active = page === i.id
             return (
@@ -62,7 +72,7 @@ export default function Sidebar({ open, onClose, page, onPage, role, school }) {
               </button>
             )
           })}
-          <p className="px-2 pt-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400/90">Premium</p>
+          <p className="px-2 pt-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400/90">Premium features</p>
           {ITEMS.filter((i) => i.premium && i.roles.includes(role)).map((i) => {
             const active = page === i.id
             const unlocked = canAccessModule(school, i.id)
@@ -88,7 +98,7 @@ export default function Sidebar({ open, onClose, page, onPage, role, school }) {
           })}
         </nav>
         <div className="p-4 border-t border-white/10 text-[11px] text-slate-400 leading-relaxed">
-          <span className="text-slate-300 font-semibold">ShuleKit</span>
+          <span className="text-slate-300 font-semibold">ShuleMoja</span>
           <br />© BigDataKE Technologies
         </div>
       </aside>

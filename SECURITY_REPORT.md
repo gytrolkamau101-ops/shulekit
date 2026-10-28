@@ -1,4 +1,4 @@
-# ShuleKit — Security debug & fixes
+# ShuleMoja — Security debug & fixes
 
 ## Vulnerabilities found and fixed
 

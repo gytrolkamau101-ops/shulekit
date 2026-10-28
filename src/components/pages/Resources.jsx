@@ -124,7 +124,8 @@ export default function Resources({ school, user }) {
             <input className={input} placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
             <div className="md:col-span-2">
               <label className="text-sm text-gray-600">File (PDF, image, doc — optional)</label>
-              <input type="file" className={input} onChange={(e) => setFile(e.target.files?.[0] || null)} />
+              <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,application/pdf" className={input} onChange={(e) => setFile(e.target.files?.[0] || null)} />
+              <p className="text-xs text-slate-500">Gallery photos, camera images, or documents</p>
             </div>
             <div className="md:col-span-2">
               <Alert>{error}</Alert>

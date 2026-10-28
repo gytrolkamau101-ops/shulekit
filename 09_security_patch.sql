@@ -1,5 +1,5 @@
 -- ============================================================
--- ShuleKit — Security patch (run AFTER 01–08)
+-- ShuleMoja — Security patch (run AFTER 01–08)
 --
 -- 07_features_pack.sql accidentally reintroduced the exact
 -- privilege-escalation bug that 03_security_fixes.sql had already

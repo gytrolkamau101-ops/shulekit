@@ -1,4 +1,4 @@
--- ShuleKit v5 remaining features (run AFTER 07)
+-- ShuleMoja v5 remaining features (run AFTER 07)
 -- Payment rails config, messaging log, plan helpers
 
 alter table public.schools add column if not exists mpesa_paybill text;

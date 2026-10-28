@@ -1,13 +1,15 @@
+import { BRAND_NAME, LOGO_C2, LOGO_TEXT } from '../brand'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { payAdminBillStk, intasendConfig } from '../lib/intasend'
 import { getSetting, saveSetting } from '../lib/platform'
 import { Card, Scroll, Alert, darkField, btn, btnGreen, th, td, toast, Spinner } from '../components/ui'
+import ImagePicker from '../components/ImagePicker'
 import { DEFAULT_PLANS } from '../lib/plans'
 
 const saField = darkField
 
-const TABS = ['overview', 'schools', 'billing', 'payments', 'theme', 'pricing', 'pages', 'audit']
+const TABS = ['overview', 'schools', 'referrals', 'support', 'billing', 'payments', 'theme', 'pricing', 'pages', 'audit']
 
 export default function SuperAdmin({ session }) {
   const [admin, setAdmin] = useState(null)
@@ -19,9 +21,26 @@ export default function SuperAdmin({ session }) {
   const [billAmount, setBillAmount] = useState('5000')
   const [billing, setBilling] = useState(false)
   const [billPhone, setBillPhone] = useState('')
+  const [tickets, setTickets] = useState([])
   const [filter, setFilter] = useState('')
   const [tab, setTab] = useState('overview')
-  const [theme, setTheme] = useState({ primary: '#1d4ed8', accent: '#06b6d4', bg_style: 'gradient', bg_from: '#0f172a', bg_to: '#1e3a8a', logo_text: 'SK' })
+  const [theme, setTheme] = useState({
+    primary: '#1d4ed8',
+    accent: '#06b6d4',
+    bg_style: 'gradient',
+    bg_from: '#0f172a',
+    bg_to: '#1e3a8a',
+    logo_text: 'SM',
+    brand_logo_url: '',
+    brand_name: 'ShuleMoja',
+    tagline: 'Run the school. Keep the history.',
+    product_line: 'School Management',
+    country_line: 'Kenya',
+    company_line: 'BigDataKE Technologies',
+    login_subtext:
+      'Fees, exams, parents & terms — not a school directory. School fee money goes to your Till/Paybill.',
+    footer_text: '© BigDataKE Technologies. All rights reserved.',
+  })
   const [pricing, setPricing] = useState({ currency: 'KES', plans: [] })
   const [terms, setTerms] = useState({ title: 'Terms & Conditions', body: '' })
   const [how, setHow] = useState({ title: 'How it works', body: '' })
@@ -43,7 +62,11 @@ export default function SuperAdmin({ session }) {
       supabase.from('audit_events').select('*').order('created_at', { ascending: false }).limit(100),
       supabase.from('subscription_events').select('*').order('created_at', { ascending: false }).limit(300),
     ])
-    setSchools(sch || [])
+    try {
+        const { data: tks } = await supabase.from('support_tickets').select('*').order('created_at', { ascending: false }).limit(100)
+        setTickets(tks || [])
+      } catch (_) { setTickets([]) }
+      setSchools(sch || [])
     setEvents(aud || [])
     setPayEvents(pays || [])
     const [th, pr, te, hi, co] = await Promise.all([
@@ -181,7 +204,7 @@ export default function SuperAdmin({ session }) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md text-center space-y-4">
-          <h1 className="text-2xl font-black text-white">ShuleKit</h1>
+          <h1 className="text-2xl font-black text-white">{BRAND_NAME}</h1>
           <p className="text-slate-400 text-sm">Not a platform admin.</p>
           <button onClick={logout} className={btn}>
             Logout
@@ -205,15 +228,12 @@ export default function SuperAdmin({ session }) {
         />
         <div className="relative px-4 md:px-8 py-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-lg shadow-lg"
-              style={{ background: theme.primary }}
-            >
-              {theme.logo_text || 'SK'}
+            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg border border-white/20 bg-slate-900">
+              <img src="/icon.svg" alt="" className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="text-cyan-200/90 text-xs font-bold tracking-widest uppercase">Platform command centre</p>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight">ShuleKit</h1>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight">{BRAND_NAME}</h1>
               <p className="text-sm text-blue-100/80">{admin.full_name || session.user.email} · BigDataKE Technologies</p>
             </div>
           </div>
@@ -318,6 +338,93 @@ export default function SuperAdmin({ session }) {
           </div>
         )}
 
+
+        {tab === 'referrals' && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 text-sm text-slate-300">
+              <p className="font-bold text-white mb-1">Referral ledger</p>
+              <p>Mandatory code at school registration. Premium inviters earn 100 progress per paid invite; at 300 → free Premium term (max 2). Max 6 invites lifetime. System code GGGGG is internal only.</p>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
+              <Scroll>
+                <table className="w-full">
+                  <thead className="bg-slate-950">
+                    <tr>
+                      <th className={th}>School</th>
+                      <th className={th}>Code</th>
+                      <th className={th}>Credits</th>
+                      <th className={th}>Invites</th>
+                      <th className={th}>Free Premia</th>
+                      <th className={th}>Referred by</th>
+                      <th className={th}>Plan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schools.map((s) => (
+                      <tr key={s.id} className="border-t border-slate-800">
+                        <td className={td}>{s.school_name}</td>
+                        <td className={td}><code className="text-cyan-400">{s.referral_code || '—'}</code></td>
+                        <td className={td}>{s.referral_credits ?? 0}</td>
+                        <td className={td}>{s.lifetime_invite_count ?? 0}/6</td>
+                        <td className={td}>{s.free_premium_grants ?? 0}/2</td>
+                        <td className={td}>{s.referred_by_code || '—'}</td>
+                        <td className={td}>{s.plan || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Scroll>
+            </div>
+          </div>
+        )}
+
+
+        {tab === 'support' && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 text-sm text-slate-300">
+              <p className="font-bold text-white mb-1">Support tickets</p>
+              <p>In-app messages from Premium schools. Reply below; schools see your reply on their Support page.</p>
+            </div>
+            <div className="space-y-3">
+              {(tickets || []).length === 0 && <p className="text-slate-400 text-sm">No tickets (run 21_v34_support.sql if empty after schools message).</p>}
+              {(tickets || []).map((tk) => (
+                <div key={tk.id} className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-sm">
+                  <div className="flex justify-between gap-2 text-white font-bold">
+                    <span>{tk.subject}</span>
+                    <span className="text-xs text-amber-400 uppercase">{tk.status}</span>
+                  </div>
+                  <p className="text-slate-400 text-xs mt-1">School {String(tk.school_id).slice(0, 8)}… · {new Date(tk.created_at).toLocaleString()}</p>
+                  <p className="text-slate-300 mt-2 whitespace-pre-wrap">{tk.body}</p>
+                  {tk.media_url && <a className="text-cyan-400 text-xs" href={tk.media_url} target="_blank" rel="noreferrer">Media</a>}
+                  {tk.admin_reply && <p className="mt-2 text-emerald-300 text-xs whitespace-pre-wrap">Reply: {tk.admin_reply}</p>}
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      className={saField}
+                      style={{ color: '#f8fafc', backgroundColor: '#1e293b' }}
+                      placeholder="Type reply…"
+                      id={`reply-${tk.id}`}
+                    />
+                    <button
+                      type="button"
+                      className={btnGreen}
+                      onClick={async () => {
+                        const el = document.getElementById(`reply-${tk.id}`)
+                        const reply = el?.value?.trim()
+                        if (!reply) return
+                        await supabase.from('support_tickets').update({ admin_reply: reply, status: 'replied', replied_at: new Date().toISOString() }).eq('id', tk.id)
+                        el.value = ''
+                        const { data: tks } = await supabase.from('support_tickets').select('*').order('created_at', { ascending: false }).limit(100)
+                        setTickets(tks || [])
+                      }}
+                    >
+                      Reply
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {tab === 'billing' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-4">
             <h2 className="text-xl font-black">Bill a school (IntaSend)</h2>
@@ -421,11 +528,50 @@ export default function SuperAdmin({ session }) {
               }}
             >
               <span className="px-4 py-2 rounded-xl text-white" style={{ background: theme.primary }}>
-                {theme.logo_text || 'SK'} Preview
+                {theme.logo_text || 'SM'} Preview
               </span>
             </div>
+            <div className="mb-3">
+              <ImagePicker
+                dark
+                label="Login brand image (gallery / camera)"
+                value={theme.brand_logo_url || ''}
+                onChange={(url) => setTheme({ ...theme, brand_logo_url: url })}
+                maxW={900}
+                previewClass="h-24 max-w-full object-contain rounded-xl border border-slate-600 bg-slate-900"
+              />
+            </div>
+
+            <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 space-y-3">
+              <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">Public login branding</h3>
+              <p className="text-xs text-slate-400">Controls the words under the logo on the login page and related public labels. Leave blank to use defaults.</p>
+              <label className="block text-xs text-slate-400">Product name
+                <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} value={theme.brand_name || ''} onChange={(e) => setTheme({ ...theme, brand_name: e.target.value })} placeholder="ShuleMoja" />
+              </label>
+              <label className="block text-xs text-slate-400">Tagline (on logo / marketing)
+                <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} value={theme.tagline || ''} onChange={(e) => setTheme({ ...theme, tagline: e.target.value })} placeholder="Run the school. Keep the history." />
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block text-xs text-slate-400">Line under logo (left)
+                  <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} value={theme.product_line || ''} onChange={(e) => setTheme({ ...theme, product_line: e.target.value })} placeholder="School Management" />
+                </label>
+                <label className="block text-xs text-slate-400">Line under logo (right)
+                  <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} value={theme.country_line || ''} onChange={(e) => setTheme({ ...theme, country_line: e.target.value })} placeholder="Kenya" />
+                </label>
+              </div>
+              <label className="block text-xs text-slate-400">Company line (“by …”)
+                <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} value={theme.company_line || ''} onChange={(e) => setTheme({ ...theme, company_line: e.target.value })} placeholder="BigDataKE Technologies" />
+              </label>
+              <label className="block text-xs text-slate-400">Paragraph under the image (login)
+                <textarea className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} rows={3} value={theme.login_subtext || ''} onChange={(e) => setTheme({ ...theme, login_subtext: e.target.value })} placeholder="Fees, exams, parents & terms — not a school directory…" />
+              </label>
+              <label className="block text-xs text-slate-400">Footer copyright
+                <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} value={theme.footer_text || ''} onChange={(e) => setTheme({ ...theme, footer_text: e.target.value })} placeholder="© BigDataKE Technologies. All rights reserved." />
+              </label>
+            </div>
+
             <button type="button" disabled={savingCms} className={btnGreen} onClick={() => saveCms('theme', theme)}>
-              Save theme for whole platform
+              Save theme &amp; branding for whole platform
             </button>
           </div>
         )}
@@ -508,7 +654,8 @@ export default function SuperAdmin({ session }) {
               <h2 className="font-black">Contacts</h2>
               <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="Email" value={contacts.email || ''} onChange={(e) => setContacts({ ...contacts, email: e.target.value })} />
               <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="Phone" value={contacts.phone || ''} onChange={(e) => setContacts({ ...contacts, phone: e.target.value })} />
-              <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="WhatsApp" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
+              <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="WhatsApp (Premium support — not shown on public contact page)" value={contacts.whatsapp || ''} onChange={(e) => setContacts({ ...contacts, whatsapp: e.target.value })} />
+              <p className="text-xs text-slate-400">Public login Contact page shows email only. WhatsApp/SMS open only for Premium schools inside the app.</p>
               <input className={saField} style={{ color: "#f8fafc", backgroundColor: "#1e293b" }} placeholder="Address" value={contacts.address || ''} onChange={(e) => setContacts({ ...contacts, address: e.target.value })} />
               <button type="button" disabled={savingCms} className={btnGreen} onClick={() => saveCms('contacts', contacts)}>
                 Save contacts
@@ -646,7 +793,7 @@ export default function SuperAdmin({ session }) {
           </div>
         )}
 
-        <p className="text-center text-xs text-slate-600 pb-8">© BigDataKE Technologies · ShuleKit</p>
+        <p className="text-center text-xs text-slate-600 pb-8">© BigDataKE Technologies · ShuleMoja</p>
       </main>
     </div>
   )

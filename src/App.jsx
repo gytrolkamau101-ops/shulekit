@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import Login from './pages/Login'
 import ErrorBoundary from './components/ErrorBoundary'
+import { applyTheme, getTheme } from './lib/prefs'
 import AccountGate from './pages/AccountGate'
 import { input, btn, Alert, ToastHost, PasswordInput, Spinner } from './components/ui'
 
@@ -45,6 +46,7 @@ export default function App() {
   const [recovering, setRecovering] = useState(false)
 
   useEffect(() => {
+    applyTheme(getTheme())
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setLoading(false)
@@ -59,8 +61,8 @@ export default function App() {
   if (loading) {
     return (
       <div className="min-h-screen sk-mesh flex flex-col items-center justify-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white font-black text-lg">SK</div>
-        <h1 className="text-3xl font-black text-white">ShuleKit</h1>
+        <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white font-black text-lg">SM</div>
+        <h1 className="text-3xl font-black text-white">ShuleMoja</h1>
         <span className="sk-spinner" />
       </div>
     )

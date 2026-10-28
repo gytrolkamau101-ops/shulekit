@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, NeedTerm, PageTitle, input, btnGreen, btnGhost, th, td, Modal, toast } from '../ui'
+import ImagePicker from '../ImagePicker'
 
 const CAN_EDIT = ['Principal', 'Deputy Principal', 'Senior Teacher', 'Secretary']
 
@@ -19,6 +20,7 @@ const blank = {
   parent_name: '',
   parent_phone: '',
   parent_email: '',
+  photo_url: '',
 }
 
 export default function Students({ school, user, term }) {
@@ -341,6 +343,15 @@ export default function Students({ school, user, term }) {
               value={form.parent_email}
               onChange={(e) => setForm({ ...form, parent_email: e.target.value })}
             />
+            <div className="md:col-span-2">
+              <ImagePicker
+                label="Passport photo (optional)"
+                value={form.photo_url || ''}
+                onChange={(url) => setForm((prev) => ({ ...prev, photo_url: url }))}
+                maxW={480}
+                previewClass="w-20 h-20 rounded-xl object-cover border-2 border-slate-200 shadow"
+              />
+            </div>
             <div className="md:col-span-2">
               <Alert>{error}</Alert>
             </div>

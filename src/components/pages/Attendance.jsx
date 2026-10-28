@@ -90,7 +90,7 @@ export default function Attendance({ school, term, user }) {
     absent.forEach((s, i) => {
       let p = String(s.parent_phone).replace(/\D/g, '')
       if (p.startsWith('0')) p = '254' + p.slice(1)
-      const msg = `Habari, ${s.first_name} ${s.last_name} was marked Absent on ${new Date(date).toLocaleDateString('en-GB')}. — ${school.school_name || 'School'} (ShuleKit)`
+      const msg = `Habari, ${s.first_name} ${s.last_name} was marked Absent on ${new Date(date).toLocaleDateString('en-GB')}. — ${school.school_name || 'School'} (ShuleMoja)`
       setTimeout(() => {
         window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank')
       }, i * 600)

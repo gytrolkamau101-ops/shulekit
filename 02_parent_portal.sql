@@ -1,5 +1,5 @@
 -- ============================================================
--- ShuleKit — Parent Portal migration (run AFTER 01_schema.sql)
+-- ShuleMoja — Parent Portal migration (run AFTER 01_schema.sql)
 -- Adds: parent accounts, parent-child linking (admin-approved),
 -- and read-only RLS so a parent only ever sees their own child.
 -- ============================================================

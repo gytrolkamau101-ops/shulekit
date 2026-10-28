@@ -5,7 +5,7 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!url || !key || String(url).includes('YOUR-PROJECT') || String(key).includes('YOUR-ANON')) {
   console.error(
-    'ShuleKit: missing Supabase credentials. Copy .env.example to .env and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+    'ShuleMoja: missing Supabase credentials. Copy .env.example to .env and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
   )
 }
 

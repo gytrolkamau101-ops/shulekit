@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
-import { Card, Scroll, Alert, PageTitle, input, btnGreen, th, td } from '../ui'
+import { Card, Scroll, Alert, PageTitle, input, btnGreen, btnGhost, th, td } from '../ui'
+import ImagePicker from '../ImagePicker'
 import { ADMIN } from '../../lib/roles'
 
 export default function Circulars({ school, user }) {
@@ -8,6 +9,7 @@ export default function Circulars({ school, user }) {
   const [list, setList] = useState([])
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
   const [audience, setAudience] = useState('all')
   const [error, setError] = useState('')
 
@@ -29,11 +31,12 @@ export default function Circulars({ school, user }) {
     e.preventDefault()
     setError('')
     const { error } = await supabase.from('circulars').insert([
-      { school_id: school.id, title, body, audience, created_by: user.id },
+      { school_id: school.id, title, body, audience, created_by: user.id, image_url: imageUrl || null },
     ])
     if (error) return setError(error.message)
     setTitle('')
     setBody('')
+    setImageUrl('')
     load()
   }
 
@@ -45,6 +48,13 @@ export default function Circulars({ school, user }) {
           <form onSubmit={post} className="space-y-3">
             <input className={input} placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
             <textarea className={`${input} min-h-[100px]`} placeholder="Message / homework / announcement" value={body} onChange={(e) => setBody(e.target.value)} required />
+            <ImagePicker
+              label="Attach photo"
+              value={imageUrl}
+              onChange={setImageUrl}
+              maxW={1200}
+              previewClass="h-24 rounded-lg border object-cover"
+            />
             <select className={input} value={audience} onChange={(e) => setAudience(e.target.value)}>
               <option value="all">Everyone</option>
               <option value="parents">Parents</option>
@@ -72,6 +82,7 @@ export default function Circulars({ school, user }) {
                   <td className={td}>
                     <p className="font-semibold">{c.title}</p>
                     <p className="text-xs text-slate-600 whitespace-pre-wrap mt-1">{c.body}</p>
+                    {c.image_url && <img src={c.image_url} alt="" className="mt-2 max-h-48 rounded-lg border object-contain" />}
                   </td>
                   <td className={td}>{c.audience}</td>
                 </tr>

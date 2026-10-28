@@ -11,7 +11,7 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('ShuleKit error:', error, info)
+    console.error('ShuleMoja error:', error, info)
   }
 
   render() {

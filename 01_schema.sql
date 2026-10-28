@@ -1,5 +1,5 @@
 -- ============================================================
--- ShuleKit schema  (run ONCE in Supabase > SQL Editor)
+-- ShuleMoja schema  (run ONCE in Supabase > SQL Editor)
 -- Includes: tables, sign-up trigger, role-based security (RLS)
 -- ============================================================
 
