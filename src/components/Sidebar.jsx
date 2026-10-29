@@ -1,5 +1,5 @@
 import { BRAND_NAME, LOGO_TEXT, LOGO_C2, LOGO_ICON } from '../brand'
-import { ALL_STAFF, ADMIN, FINANCE_ROLES, EXAM_ROLES } from '../lib/roles'
+import { ALL_STAFF, ADMIN, FINANCE_ROLES, EXAM_ROLES, BOARDING_ROLES, TRANSPORT_ROLES, BOM_ROLES, DESK_ROLES, DATA_EDITORS } from '../lib/roles'
 import { PREMIUM_MODULES, canAccessModule } from '../lib/plans'
 
 /** Core (Basic) first, Premium below */
@@ -20,6 +20,11 @@ const ITEMS = [
   { id: 'import', label: 'Import centre', icon: '⇩', roles: [...ADMIN, 'Secretary'], premium: true },
   { id: 'support', label: 'Contact Support', icon: '☎', roles: ALL_STAFF, premium: true },
   { id: 'referrals', label: 'Invite · Earn', icon: '🏆', roles: [...ADMIN, 'Secretary'], premium: true },
+  { id: 'boarding', label: 'Boarding', icon: '🏠', roles: BOARDING_ROLES, premium: true },
+  { id: 'transport', label: 'Transport', icon: '🚌', roles: TRANSPORT_ROLES, premium: true },
+  { id: 'bom', label: 'BOM portal', icon: '🏛', roles: BOM_ROLES, premium: true },
+  { id: 'records', label: 'Records vault', icon: '📁', roles: DATA_EDITORS, premium: true },
+  { id: 'staff-desk', label: 'Staff desk', icon: '🛠', roles: [...DESK_ROLES, ...DATA_EDITORS, 'Deputy Principal'], premium: true },
 ]
 
 export default function Sidebar({ open, onClose, page, onPage, role, school }) {

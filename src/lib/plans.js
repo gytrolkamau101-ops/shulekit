@@ -1,112 +1,63 @@
-/** Basic vs Premium — Premium-only modules: Messages, Attendance, Timetable, Circulars, Import */
+/** Basic / Premium / Pro / Custom — caps + feature flags (v38 structure) */
 
-export const PREMIUM_MODULES = ['messages', 'attendance', 'timetable', 'circulars', 'import']
+export const PREMIUM_MODULES = ['messages', 'attendance', 'timetable', 'circulars', 'import', 'support', 'referrals', 'boarding', 'transport', 'bom', 'records', 'staff-desk']
 
 export const PLAN_FEATURES = {
-  basic: {
-    messages: false,
-    attendance: false,
-    timetable: false,
-    circulars: false,
-    import: false,
-    parentPay: false,
-    bulkMessaging: false,
-    messageTemplates: false,
-    notifyAbsent: false,
-    feeHeads: true,
-    defaulterBlast: false,
-    prioritySupport: false,
-    defaultCap: 250,
-  },
   free: {
-    messages: false,
-    attendance: false,
-    timetable: false,
-    circulars: false,
-    import: false,
-    parentPay: false,
-    bulkMessaging: false,
-    messageTemplates: false,
-    notifyAbsent: false,
-    feeHeads: false,
-    defaulterBlast: false,
-    prioritySupport: false,
-    defaultCap: 100,
+    messages: false, attendance: false, timetable: false, circulars: false, import: false, boarding: false, transport: false, bom: false, records: false, staffDesk: false,
+    parentPay: false, bulkMessaging: false, messageTemplates: false, notifyAbsent: false,
+    feeHeads: false, defaulterBlast: false, prioritySupport: false, fullBranding: false,
+    parentDownloads: false, reportWatermark: true,
+    defaultCap: 100, staffCap: 10, parentCap: 80,
   },
   trial: {
-    messages: true,
-    attendance: true,
-    timetable: true,
-    circulars: true,
-    import: true,
-    parentPay: true,
-    bulkMessaging: true,
-    messageTemplates: true,
-    notifyAbsent: true,
-    feeHeads: true,
-    defaulterBlast: true,
-    prioritySupport: false,
-    defaultCap: 250,
+    messages: true, attendance: true, timetable: true, circulars: true, import: true, boarding: true, transport: true, bom: true, records: true, staffDesk: true,
+    parentPay: true, bulkMessaging: true, messageTemplates: true, notifyAbsent: true,
+    feeHeads: true, defaulterBlast: true, prioritySupport: false, fullBranding: true,
+    parentDownloads: true, reportWatermark: false,
+    defaultCap: 250, staffCap: 30, parentCap: 200,
+  },
+  basic: {
+    messages: false, attendance: false, timetable: false, circulars: false, import: false, boarding: false, transport: false, bom: false, records: false, staffDesk: false,
+    parentPay: false, bulkMessaging: false, messageTemplates: false, notifyAbsent: false,
+    feeHeads: true, defaulterBlast: false, prioritySupport: false, fullBranding: false,
+    parentDownloads: false, reportWatermark: true,
+    defaultCap: 200, staffCap: 25, parentCap: 150,
   },
   premium: {
-    messages: true,
-    attendance: true,
-    timetable: true,
-    circulars: true,
-    import: true,
-    parentPay: true,
-    bulkMessaging: true,
-    messageTemplates: true,
-    notifyAbsent: true,
-    feeHeads: true,
-    defaulterBlast: true,
-    prioritySupport: true,
-    defaultCap: 500,
+    messages: true, attendance: true, timetable: true, circulars: true, import: true, boarding: true, transport: true, bom: true, records: true, staffDesk: true,
+    parentPay: true, bulkMessaging: true, messageTemplates: true, notifyAbsent: true,
+    feeHeads: true, defaulterBlast: true, prioritySupport: true, fullBranding: true,
+    parentDownloads: true, reportWatermark: false,
+    defaultCap: 500, staffCap: 50, parentCap: 350,
   },
   pro: {
-    messages: true,
-    attendance: true,
-    timetable: true,
-    circulars: true,
-    import: true,
-    parentPay: true,
-    bulkMessaging: true,
-    messageTemplates: true,
-    notifyAbsent: true,
-    feeHeads: true,
-    defaulterBlast: true,
-    prioritySupport: true,
-    defaultCap: 1000,
+    messages: true, attendance: true, timetable: true, circulars: true, import: true, boarding: true, transport: true, bom: true, records: true, staffDesk: true,
+    parentPay: true, bulkMessaging: true, messageTemplates: true, notifyAbsent: true,
+    feeHeads: true, defaulterBlast: true, prioritySupport: true, fullBranding: true,
+    parentDownloads: true, reportWatermark: false,
+    defaultCap: 1000, staffCap: 80, parentCap: 800,
+  },
+  custom: {
+    messages: true, attendance: true, timetable: true, circulars: true, import: true, boarding: true, transport: true, bom: true, records: true, staffDesk: true,
+    parentPay: true, bulkMessaging: true, messageTemplates: true, notifyAbsent: true,
+    feeHeads: true, defaulterBlast: true, prioritySupport: true, fullBranding: true,
+    parentDownloads: true, reportWatermark: false,
+    defaultCap: 2000, staffCap: 180, parentCap: 1800,
   },
   termly: {
-    messages: false,
-    attendance: false,
-    timetable: false,
-    circulars: false,
-    import: false,
-    parentPay: false,
-    bulkMessaging: false,
-    messageTemplates: false,
-    notifyAbsent: false,
-    feeHeads: true,
-    defaulterBlast: false,
-    prioritySupport: false,
-    defaultCap: 250,
+    messages: false, attendance: false, timetable: false, circulars: false, import: false,
+    parentPay: false, bulkMessaging: false, messageTemplates: false, notifyAbsent: false,
+    feeHeads: true, defaulterBlast: false, prioritySupport: false, fullBranding: false,
+    parentDownloads: false, reportWatermark: true,
+    defaultCap: 200, staffCap: 25, parentCap: 150,
   },
   yearly: {
-    messages: true,
-    attendance: true,
-    timetable: true,
-    circulars: true,
-    import: true,
-    parentPay: true,
-    bulkMessaging: true,
-    messageTemplates: true,
-    notifyAbsent: true,
-    feeHeads: true,
-    defaulterBlast: true,
-    prioritySupport: true,
-    defaultCap: 500,
+    messages: true, attendance: true, timetable: true, circulars: true, import: true,
+    parentPay: true, bulkMessaging: true, messageTemplates: true, notifyAbsent: true,
+    feeHeads: true, defaulterBlast: true, prioritySupport: true, fullBranding: true,
+    parentDownloads: true, reportWatermark: false,
+    defaultCap: 500, staffCap: 50, parentCap: 350,
   },
 }
 
@@ -126,7 +77,7 @@ export function planEntitlements(school) {
 export function canAccessModule(school, moduleId) {
   if (moduleId === 'support' || moduleId === 'referrals') {
     const e = planEntitlements(school)
-    return !!(e.messages || e.attendance || e.planId === 'premium' || e.planId === 'trial')
+    return !!(e.messages || e.attendance || e.planId === 'premium' || e.planId === 'trial' || e.planId === 'pro' || e.planId === 'custom')
   }
   if (!PREMIUM_MODULES.includes(moduleId)) return true
   const e = planEntitlements(school)
@@ -135,26 +86,37 @@ export function canAccessModule(school, moduleId) {
 
 export function isPremium(school) {
   const e = planEntitlements(school)
-  return !!(e.messages || e.attendance || e.planId === 'premium' || e.planId === 'trial')
+  return !!(e.messages || e.attendance || e.planId === 'premium' || e.planId === 'trial' || e.planId === 'pro' || e.planId === 'custom')
 }
 
+/** Official public pricing (KES / term) */
 export const DEFAULT_PLANS = {
   currency: 'KES',
   plans: [
     {
       id: 'premium',
       name: 'Premium',
-      price: 4000,
+      price: 3500,
       period: 'per term',
       highlight: true,
       features: [
-        'Priority WhatsApp support from BigDataKE',
-        'Invite schools — unlock free Premium terms',
-        'Parents see notices, timetable & clearer fee status',
-        'Attendance that cuts roll-call time',
-        'Messages & circulars — fewer office queues',
-        'Timetable tools + bulk Import Centre',
-        'Everything in Basic',
+        'Up to 500 students · 50 staff · 350 parents',
+        'Priority WhatsApp support',
+        'Full school branding (no report watermark)',
+        'Attendance, Messages, Timetable, Circulars, Import',
+        'Parent downloads: report cards & fee statements',
+        'Invite schools · earn free terms',
+      ],
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: 5000,
+      period: 'per term',
+      features: [
+        'Up to 1,000 students · 80 staff · 800 parents',
+        'Everything in Premium',
+        'Higher capacity for large schools',
       ],
     },
     {
@@ -163,13 +125,27 @@ export const DEFAULT_PLANS = {
       price: 2000,
       period: 'per term',
       features: [
-        'Students, classes & enrolments',
-        'Fees, balances & arrears records',
-        'Exams & print-ready report cards',
-        'Parent portal: balances & how to pay the school',
-        'School setup, logo & payment instructions',
-        'Email support (public contact)',
+        'Up to 200 students · 25 staff · 150 parents',
+        'Students, fees, exams & report cards',
+        'Parent portal: balances (view)',
+        'ShuleMoja watermark on class reports',
+        'Email support',
       ],
     },
+    {
+      id: 'custom',
+      name: 'Custom',
+      price: 0,
+      period: 'contact us',
+      features: [
+        'From ~1,000+ students with custom caps',
+        'Institution setup as agreed',
+        'Contact BigDataKE for a quote',
+      ],
+    },
+  ],
+  promos: [
+    'Buy 3 Premium terms → get 1 Premium free',
+    'Buy 2 Pro terms → get 1 Pro free',
   ],
 }

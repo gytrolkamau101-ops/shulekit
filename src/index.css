@@ -220,3 +220,47 @@ html[data-theme="dim"] .sm-topbar {
 .sm-animate {
   animation: sk-fade-up 0.35s ease both;
 }
+
+/* ===== v40 3D buttons ===== */
+.sm-btn-3d {
+  border: 2px solid transparent;
+  box-shadow:
+    0 4px 0 rgba(15, 23, 42, 0.25),
+    0 8px 16px rgba(15, 23, 42, 0.15);
+  transform: translateY(0);
+}
+.sm-btn-3d:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.25),
+    0 2px 6px rgba(15, 23, 42, 0.12);
+}
+.sm-btn-3d-blue {
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
+  border-color: #93c5fd;
+}
+.sm-btn-3d-green {
+  background: linear-gradient(180deg, #34d399 0%, #059669 55%, #047857 100%);
+  border-color: #6ee7b7;
+}
+.sm-btn-3d-red {
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 55%, #b91c1c 100%);
+  border-color: #fca5a5;
+}
+.sm-btn-3d-ghost {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  border-color: #cbd5e1;
+  box-shadow:
+    0 3px 0 #94a3b8,
+    0 6px 12px rgba(15, 23, 42, 0.08);
+}
+.sm-btn-3d-ghost:active {
+  box-shadow: 0 1px 0 #94a3b8, 0 2px 4px rgba(15, 23, 42, 0.08);
+}
+
+/* Labels always readable */
+label span,
+.sm-label {
+  color: #334155;
+  font-weight: 800;
+}

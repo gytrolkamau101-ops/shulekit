@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, NeedTerm, PageTitle, input, btnGreen, btnGhost, th, td, Modal, toast } from '../ui'
 import ImagePicker from '../ImagePicker'
+import { suspensionLetterText, transferLetterText, waCompose, printBrandedLetter } from '../../lib/letters'
+import { planEntitlements } from '../../lib/plans'
 
-const CAN_EDIT = ['Principal', 'Deputy Principal', 'Senior Teacher', 'Secretary']
+import { canEditData } from '../../lib/roles'
+import { assertStudentCap } from '../../lib/caps'
 
 function nullIfEmpty(v) {
   return v === '' || v == null ? null : v
@@ -24,7 +27,7 @@ const blank = {
 }
 
 export default function Students({ school, user, term }) {
-  const canEdit = CAN_EDIT.includes(user.role)
+  const canEdit = canEditData(user.role)
   const [students, setStudents] = useState([])
   const [enrollMap, setEnrollMap] = useState({}) // student_id -> { enrollment_id, grade_id, grade_name }
   const [grades, setGrades] = useState([])
@@ -103,9 +106,12 @@ export default function Students({ school, user, term }) {
       last_name: (studentFields.last_name || '').trim(),
       admission_no: (studentFields.admission_no || '').trim(),
     }
+    if (!payload.id) {
+      try { await assertStudentCap(school) } catch (capErr) { setError(capErr.message); return }
+    }
     const { data: created, error } = await supabase
       .from('students')
-      .insert([payload])
+      .insert([payload]) /* cap checked above */
       .select()
       .single()
     if (error) {
@@ -343,6 +349,14 @@ export default function Students({ school, user, term }) {
               value={form.parent_email}
               onChange={(e) => setForm({ ...form, parent_email: e.target.value })}
             />
+            <label className="text-xs font-bold text-slate-600">Status
+              <select className={input} value={form.status || 'Active'} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Transferred">Transferred</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </label>
             <div className="md:col-span-2">
               <ImagePicker
                 label="Passport photo (optional)"

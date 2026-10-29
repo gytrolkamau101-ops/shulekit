@@ -516,6 +516,7 @@ function CalendarTab({ school }) {
             const { error } = await supabase.rpc('seed_cbc_primary_grades', { p_school_id: school.id })
             if (error) alert(error.message); else { alert('Primary CBC grades seeded'); window.location.reload() }
           }}>Seed primary CBC grades</button>
+        <p className="text-xs text-slate-500 mt-3">Streams (East, West, A, B…): after running <code>22_v37_streams_status.sql</code>, insert via Supabase or next Setup update. Admissions already offer a stream dropdown when streams exist.</p>
           <button type="button" className={btn} onClick={async () => {
             const { error } = await supabase.rpc('seed_secondary_grades', { p_school_id: school.id })
             if (error) alert(error.message); else { alert('Secondary grades seeded'); window.location.reload() }
@@ -642,6 +643,8 @@ function SchoolIdentityTab({ school, user }) {
             maxW={400}
             previewClass="h-16 object-contain rounded-lg border"
           />
+            </div>
+          )}
         </div>
         <input className={input} placeholder="P.O. Box" value={form.po_box} onChange={(e) => setForm({ ...form, po_box: e.target.value })} disabled={!canEdit} />
         <input className={input} placeholder="Physical address" value={form.physical_address} onChange={(e) => setForm({ ...form, physical_address: e.target.value })} disabled={!canEdit} />

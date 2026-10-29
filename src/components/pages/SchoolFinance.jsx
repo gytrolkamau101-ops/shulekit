@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, NeedTerm, PageTitle, input, btnGreen, th, td, fmt } from '../ui'
+import { canEditFinance } from '../../lib/roles'
 
 const EXPENSE_TYPES = ['Electricity', 'Water', 'Staff Salary', 'Maintenance', 'Office Supplies', 'Transport', 'Other']
 
 export default function SchoolFinance({ school, term }) {
+  const canEdit = canEditFinance(user.role)
   const [expenses, setExpenses] = useState([])
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -103,17 +105,17 @@ export default function SchoolFinance({ school, term }) {
       {!term && <NeedTerm />}
 
       <div className="flex flex-wrap gap-3">
-        {term && (
-          <button onClick={() => setShowExpenseForm((v) => !v)} className={btnGreen}>
+        {term && canEdit && (
+          <button type="button" onClick={() => setShowExpenseForm((v) => !v)} className={btnGreen}>
             {showExpenseForm ? 'Cancel' : '+ Record expense'}
           </button>
         )}
-        <button onClick={() => setShowEventForm((v) => !v)} className={btnGreen}>
+        <button type="button" onClick={() => setShowEventForm((v) => !v)} className={btnGreen}>
           {showEventForm ? 'Cancel' : '+ Add event'}
         </button>
       </div>
 
-      {showExpenseForm && term && (
+      {showExpenseForm && term && canEdit && (
         <Card title="Record expense">
           <form onSubmit={saveExpense} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <select className={input} value={expType} onChange={(e) => setExpType(e.target.value)}>

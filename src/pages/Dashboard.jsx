@@ -24,6 +24,11 @@ const Circulars = lazy(() => import('../components/pages/Circulars'))
 const Admissions = lazy(() => import('../components/pages/Admissions'))
 const SupportCenter = lazy(() => import('../components/pages/SupportCenter'))
 const ReferralsCenter = lazy(() => import('../components/pages/ReferralsCenter'))
+const Boarding = lazy(() => import('../components/pages/Boarding'))
+const Transport = lazy(() => import('../components/pages/Transport'))
+const BomPortal = lazy(() => import('../components/pages/BomPortal'))
+const RecordsVault = lazy(() => import('../components/pages/RecordsVault'))
+const StaffDesk = lazy(() => import('../components/pages/StaffDesk'))
 
 function PageFallback() {
   return (
@@ -181,6 +186,31 @@ export default function Dashboard({ session }) {
             {page === 'referrals' && (
               <PremiumGate school={school} moduleName="referrals">
                 <ReferralsCenter {...props} lang={lang} />
+              </PremiumGate>
+            )}
+            {page === 'boarding' && (
+              <PremiumGate school={school} moduleName="boarding">
+                <Boarding {...props} />
+              </PremiumGate>
+            )}
+            {page === 'transport' && (
+              <PremiumGate school={school} moduleName="transport">
+                <Transport {...props} />
+              </PremiumGate>
+            )}
+            {page === 'bom' && (
+              <PremiumGate school={school} moduleName="bom">
+                <BomPortal {...props} />
+              </PremiumGate>
+            )}
+            {page === 'records' && (
+              <PremiumGate school={school} moduleName="records">
+                <RecordsVault {...props} />
+              </PremiumGate>
+            )}
+            {page === 'staff-desk' && (
+              <PremiumGate school={school} moduleName="staff-desk">
+                <StaffDesk {...props} />
               </PremiumGate>
             )}
           </Suspense>

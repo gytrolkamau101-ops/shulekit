@@ -1,3 +1,4 @@
+import { canEditFinance } from '../../lib/roles'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { isOnline, enqueue } from '../../lib/offline'

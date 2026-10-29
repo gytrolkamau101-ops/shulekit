@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, NeedTerm, PageTitle, input, th, td, btn } from '../ui'
+import { planEntitlements } from '../../lib/plans'
 
 export default function ReportCards({ school, term }) {
   const [grades, setGrades] = useState([])
@@ -8,20 +9,28 @@ export default function ReportCards({ school, term }) {
   const [exams, setExams] = useState([])
   const [examId, setExamId] = useState('')
   const [rows, setRows] = useState([])
+  const [subjects, setSubjects] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const ent = planEntitlements(school)
+  const watermark = !!ent.reportWatermark
 
   useEffect(() => {
     ;(async () => {
       if (!term) return
       const [{ data: g }, { data: e }] = await Promise.all([
         supabase.from('grades').select('*').eq('school_id', school.id).order('grade_name'),
-        supabase.from('exams').select('*').eq('school_id', school.id).eq('term_id', term.id).order('exam_date', { ascending: false }),
+        supabase
+          .from('exams')
+          .select('*')
+          .eq('school_id', school.id)
+          .eq('term_id', term.id)
+          .order('exam_date', { ascending: false }),
       ])
       setGrades(g || [])
       setExams(e || [])
-      if (g?.length && !gradeId) setGradeId(g[0].id)
-      if (e?.length && !examId) setExamId(e[0].id)
+      if (g?.length) setGradeId((id) => id || g[0].id)
+      if (e?.length) setExamId((id) => id || e[0].id)
     })()
   }, [school.id, term])
 
@@ -29,127 +38,191 @@ export default function ReportCards({ school, term }) {
     if (!term || !gradeId || !examId) return
     setLoading(true)
     setError('')
-    const { data: enr } = await supabase
-      .from('student_enrollments')
-      .select('students(id, admission_no, first_name, last_name)')
-      .eq('term_id', term.id)
-      .eq('grade_id', gradeId)
-    const students = (enr || []).map((e) => e.students).filter(Boolean)
-    const { data: results } = await supabase
-      .from('exam_results')
-      .select('student_id, subject_id, marks_obtained, grade, subjects(subject_name)')
-      .eq('exam_id', examId)
-      .eq('school_id', school.id)
-    const byStudent = {}
-    students.forEach((s) => {
-      byStudent[s.id] = { student: s, subjects: {}, total: 0, count: 0 }
-    })
-    ;(results || []).forEach((r) => {
-      if (!byStudent[r.student_id]) return
-      byStudent[r.student_id].subjects[r.subjects?.subject_name || r.subject_id] = {
-        marks: r.marks_obtained,
-        grade: r.grade,
-      }
-      byStudent[r.student_id].total += Number(r.marks_obtained || 0)
-      byStudent[r.student_id].count += 1
-    })
-    const list = Object.values(byStudent).map((row) => ({
-      ...row,
-      average: row.count ? row.total / row.count : null,
-    }))
-    list.sort((a, b) => (b.average || 0) - (a.average || 0))
-    setRows(list)
-    setLoading(false)
-  }, [school.id, term, gradeId, examId])
+    try {
+      const { data: enr } = await supabase
+        .from('student_enrollments')
+        .select('students(id, admission_no, first_name, last_name, status)')
+        .eq('term_id', term.id)
+        .eq('grade_id', gradeId)
+      const students = (enr || [])
+        .map((e) => e.students)
+        .filter((s) => s && (!s.status || s.status === 'Active' || s.status === 'Suspended'))
+      const { data: results } = await supabase
+        .from('exam_results')
+        .select('student_id, subject_id, marks_obtained, grade, subjects(subject_name)')
+        .eq('exam_id', examId)
+        .eq('school_id', school.id)
+      const subSet = new Set()
+      const byStudent = {}
+      students.forEach((s) => {
+        byStudent[s.id] = { student: s, subjects: {}, total: 0, count: 0 }
+      })
+      ;(results || []).forEach((r) => {
+        const name = r.subjects?.subject_name || String(r.subject_id).slice(0, 6)
+        subSet.add(name)
+        if (!byStudent[r.student_id]) return
+        byStudent[r.student_id].subjects[name] = {
+          marks: r.marks_obtained,
+          grade: r.grade,
+        }
+        byStudent[r.student_id].total += Number(r.marks_obtained || 0)
+        byStudent[r.student_id].count += 1
+      })
+      const list = Object.values(byStudent)
+        .map((row) => ({
+          ...row,
+          average: row.count ? (row.total / row.count).toFixed(1) : '—',
+        }))
+        .sort((a, b) =>
+          `${a.student.last_name}${a.student.first_name}`.localeCompare(
+            `${b.student.last_name}${b.student.first_name}`
+          )
+        )
+      setSubjects([...subSet].sort())
+      setRows(list)
+    } catch (e) {
+      setError(e.message || 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
+  }, [term, gradeId, examId, school.id])
 
-  useEffect(() => { loadReport() }, [loadReport])
+  useEffect(() => {
+    loadReport()
+  }, [loadReport])
 
-  const subjectNames = Array.from(new Set(rows.flatMap((r) => Object.keys(r.subjects)))).sort()
-  const gradeName = grades.find((g) => g.id === gradeId)?.grade_name || ''
-  const examName = exams.find((e) => e.id === examId)?.exam_name || ''
-
-  const printCards = () => {
+  const downloadClassReport = () => {
+    const gradeName = grades.find((g) => g.id === gradeId)?.grade_name || 'Class'
+    const examName = exams.find((e) => e.id === examId)?.exam_name || 'Exam'
+    const logo = school?.logo_url
+      ? `<img src="${school.logo_url}" style="max-height:56px;margin:0 auto 6px;display:block"/>`
+      : ''
+    const wm = watermark
+      ? `<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0.07;font-size:72px;font-weight:900;transform:rotate(-30deg)">ShuleMoja</div>`
+      : ''
+    const head = subjects.map((s) => `<th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">${s}</th>`).join('')
+    const body = rows
+      .map((r) => {
+        const cells = subjects
+          .map((s) => {
+            const m = r.subjects[s]
+            return `<td style="padding:6px;border:1px solid #e2e8f0;text-align:center;font-size:12px">${m ? m.marks ?? '—' : '—'}</td>`
+          })
+          .join('')
+        return `<tr>
+          <td style="padding:6px;border:1px solid #e2e8f0;font-size:12px">${r.student.admission_no || ''}</td>
+          <td style="padding:6px;border:1px solid #e2e8f0;font-size:12px">${r.student.first_name} ${r.student.last_name}</td>
+          ${cells}
+          <td style="padding:6px;border:1px solid #e2e8f0;text-align:center;font-weight:700">${r.average}</td>
+        </tr>`
+      })
+      .join('')
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${gradeName} — ${examName}</title>
+      <style>body{font-family:system-ui,sans-serif;margin:20px;color:#0f172a}
+      h1,h2{text-align:center;margin:4px 0}.sub{text-align:center;color:#64748b;font-size:12px;margin-bottom:16px}
+      table{width:100%;border-collapse:collapse} .foot{text-align:center;margin-top:20px;font-size:10px;color:#94a3b8}
+      </style></head><body>
+      ${wm}${logo}
+      <h1>${school?.school_name || 'School'}</h1>
+      <div class="sub">${school?.po_box || ''} ${school?.motto ? '· ' + school.motto : ''}</div>
+      <h2>${gradeName} — Class report</h2>
+      <div class="sub">${examName} · Term ${term?.term || ''} ${term?.year || ''}</div>
+      <table>
+        <thead><tr>
+          <th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">Adm</th>
+          <th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">Name</th>
+          ${head}
+          <th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">Avg</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+      <div class="foot">${watermark ? 'Generated with ShuleMoja · Basic plan' : 'ShuleMoja'}</div>
+      <script>window.onload=()=>setTimeout(()=>window.print(),400)</script>
+      </body></html>`
     const w = window.open('', '_blank')
-    if (!w) return setError('Allow pop-ups to print report cards')
-    const cards = rows.map((r, i) => {
-      const subs = subjectNames.map((n) => {
-        const x = r.subjects[n]
-        return `<tr><td>${n}</td><td>${x ? x.marks : '—'}</td><td>${x?.grade || '—'}</td></tr>`
-      }).join('')
-      return `<section class="card">
-        <header>${school.logo_url ? '<img src="'+school.logo_url+'" alt="" style="max-height:64px;margin-bottom:8px"/>' : ''}<h1>${school.school_name || 'School'}</h1><p>${school.po_box ? 'P.O. Box ' + school.po_box : ''}${school.physical_address ? ' · ' + school.physical_address : ''}</p><p>${school.motto || 'ShuleMoja · Report Card'}</p></header>
-        <h2>${r.student.first_name} ${r.student.last_name}</h2>
-        <p>Adm: ${r.student.admission_no} · Class: ${gradeName} · ${examName}</p>
-        <p>Term ${term.term}, ${term.year} · Position: ${i + 1} of ${rows.length}</p>
-        <table><thead><tr><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead><tbody>${subs}</tbody></table>
-        <p class="avg"><strong>Average:</strong> ${r.average != null ? r.average.toFixed(1) : '—'}</p>
-        <p class="sign">Class teacher ________________ · Principal ________________</p>
-        <p class="foot">© BigDataKE Technologies · ShuleMoja</p>
-      </section>`
-    }).join('')
-    w.document.write(`<!doctype html><html><head><title>Report Cards</title>
-      <style>
-        body{font-family:system-ui,sans-serif;color:#0f172a}
-        .card{page-break-after:always;border:1px solid #cbd5e1;padding:24px;margin-bottom:16px;border-radius:12px}
-        h1{font-size:18px;margin:0}h2{margin:12px 0 4px}
-        table{width:100%;border-collapse:collapse;margin-top:12px}
-        th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:left;font-size:13px}
-        th{background:#f1f5f9}.avg{margin-top:12px}.sign{margin-top:28px;font-size:13px}
-        .foot{font-size:11px;color:#64748b;margin-top:16px}
-      </style></head><body>${cards}<script>window.onload=()=>window.print()</script></body></html>`)
+    if (!w) {
+      setError('Allow pop-ups to download the report')
+      return
+    }
+    w.document.write(html)
     w.document.close()
   }
 
-  if (!term) return (<div className="space-y-6"><PageTitle>Report Cards</PageTitle><NeedTerm /></div>)
+  if (!term) return <NeedTerm />
 
   return (
-    <div className="space-y-6">
-      <PageTitle right={rows.length > 0 && <button type="button" onClick={printCards} className={btn}>Print / PDF cards</button>}>
-        Report Cards
-      </PageTitle>
+    <div className="space-y-4">
+      <PageTitle title="Report cards" subtitle="Class report for the whole grade — print or save as PDF" />
       <Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <select className={input} value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
-            {grades.map((g) => <option key={g.id} value={g.id}>{g.grade_name}</option>)}
-          </select>
-          <select className={input} value={examId} onChange={(e) => setExamId(e.target.value)}>
-            {exams.map((e) => <option key={e.id} value={e.id}>{e.exam_name}</option>)}
-          </select>
+        <div className="flex flex-wrap gap-2 items-end">
+          <label className="text-xs font-bold text-slate-600">
+            Grade
+            <select className={input} value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
+              {grades.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.grade_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-bold text-slate-600">
+            Exam
+            <select className={input} value={examId} onChange={(e) => setExamId(e.target.value)}>
+              {exams.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.exam_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" className={btn} onClick={loadReport} disabled={loading}>
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+          <button type="button" className={btn} onClick={downloadClassReport} disabled={!rows.length}>
+            Download class report
+          </button>
         </div>
-        <Alert>{error}</Alert>
+        {watermark && (
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-3">
+            Basic plan: reports include a light ShuleMoja watermark. Upgrade to Premium for clean branding.
+          </p>
+        )}
+        <Alert kind="error">{error}</Alert>
       </Card>
-      {loading ? <p className="text-slate-600">Loading…</p> : rows.length === 0 ? (
-        <Alert kind="ok">No enrolled students or results for this selection.</Alert>
-      ) : (
-        <Card className="!p-0" title="Class ranking">
-          <Scroll>
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b">
-                <tr>
-                  <th className={th}>#</th><th className={th}>Adm</th><th className={th}>Name</th>
-                  {subjectNames.map((n) => <th key={n} className={th}>{n}</th>)}
-                  <th className={th}>Avg</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={r.student.id} className="border-b">
-                    <td className={td}>{i + 1}</td>
-                    <td className={td}>{r.student.admission_no}</td>
-                    <td className={td}>{r.student.first_name} {r.student.last_name}</td>
-                    {subjectNames.map((n) => (
-                      <td key={n} className={td}>
-                        {r.subjects[n] ? `${r.subjects[n].marks}${r.subjects[n].grade ? ` (${r.subjects[n].grade})` : ''}` : '—'}
-                      </td>
-                    ))}
-                    <td className={`${td} font-semibold`}>{r.average != null ? r.average.toFixed(1) : '—'}</td>
-                  </tr>
+      <Card className="!p-0 overflow-x-auto">
+        <Scroll>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th className={th}>Adm</th>
+                <th className={th}>Name</th>
+                {subjects.map((s) => (
+                  <th key={s} className={th}>
+                    {s}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </Scroll>
-        </Card>
-      )}
+                <th className={th}>Avg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.student.id}>
+                  <td className={td}>{r.student.admission_no}</td>
+                  <td className={td}>
+                    {r.student.first_name} {r.student.last_name}
+                  </td>
+                  {subjects.map((s) => (
+                    <td key={s} className={td}>
+                      {r.subjects[s]?.marks ?? '—'}
+                    </td>
+                  ))}
+                  <td className={td}>{r.average}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Scroll>
+      </Card>
     </div>
   )
 }

@@ -161,8 +161,7 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
       setPayStep(null)
     } catch (e) {
       setError(
-        (e?.message || 'STK could not start') +
-          ' — Ensure INTASEND_SECRET_KEY is on Netlify and the site was redeployed.'
+        e?.message || 'STK could not start. If you see Invalid plan, set Super Admin → Pricing plan id to basic, premium or pro.'
       )
     }
     setPayBusy(false)
@@ -713,7 +712,7 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
               <input
                 className={input}
                 inputMode="tel"
-                placeholder="M-Pesa number (07XXXXXXXX)"
+                placeholder="e.g. 0700537387"
                 value={payPhone}
                 onChange={(e) => setPayPhone(e.target.value)}
               />

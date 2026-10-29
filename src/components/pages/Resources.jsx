@@ -3,11 +3,11 @@ import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, PageTitle, input, btnGreen, th, td } from '../ui'
 
 const TYPES = ['Book', 'Material', 'Equipment', 'Furniture', 'Curriculum', 'Exam paper', 'Other']
-const CAN_EDIT = ['Principal', 'Deputy Principal', 'Senior Teacher', 'Secretary']
+import { canEditResources } from '../../lib/roles'
 const BUCKET = 'school-resources'
 
 export default function Resources({ school, user }) {
-  const canEdit = CAN_EDIT.includes(user.role)
+  const canEdit = canEditResources(user.role)
   const [resources, setResources] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
