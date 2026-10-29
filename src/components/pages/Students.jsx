@@ -48,7 +48,7 @@ export default function Students({ school, user, term }) {
         .from('students')
         .select('*')
         .eq('school_id', school.id)
-        .eq('status', 'Active')
+        
         .order('first_name'),
       supabase.from('grades').select('*').eq('school_id', school.id).order('grade_name'),
     ])
@@ -468,6 +468,31 @@ export default function Students({ school, user, term }) {
             </h3>
             <p className="text-sm text-gray-600">Admission No: {selected.admission_no}</p>
             <p className="text-sm text-gray-600">Grade: {enrollMap[selected.id]?.grade_name || 'Not assigned'}</p>
+            <p className="text-sm text-gray-600">Status: {selected.status || 'Active'}</p>
+            {canEdit && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button type="button" className="text-xs font-bold px-2 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-200"
+                  onClick={async () => {
+                    await supabase.from('students').update({ status: 'Suspended' }).eq('id', selected.id)
+                    const text = suspensionLetterText({ schoolName: school.school_name, studentName: selected.first_name + ' ' + selected.last_name, admissionNo: selected.admission_no })
+                    const wa = waCompose(selected.parent_phone, text)
+                    if (wa) window.open(wa, '_blank')
+                    printBrandedLetter({ school, title: 'Suspension notice', bodyHtml: text.replace(/\n/g, '<br/>'), watermark: planEntitlements(school).reportWatermark })
+                    setSelected(null)
+                    load()
+                  }}>Suspend + letter</button>
+                <button type="button" className="text-xs font-bold px-2 py-1 rounded-lg bg-slate-200 text-slate-900 border border-slate-300"
+                  onClick={async () => {
+                    await supabase.from('students').update({ status: 'Transferred' }).eq('id', selected.id)
+                    const text = transferLetterText({ schoolName: school.school_name, studentName: selected.first_name + ' ' + selected.last_name, admissionNo: selected.admission_no })
+                    const wa = waCompose(selected.parent_phone, text)
+                    if (wa) window.open(wa, '_blank')
+                    printBrandedLetter({ school, title: 'Transfer letter', bodyHtml: text.replace(/\n/g, '<br/>'), watermark: planEntitlements(school).reportWatermark })
+                    setSelected(null)
+                    load()
+                  }}>Transfer + letter</button>
+              </div>
+            )}
             <p className="text-sm text-gray-600">Gender: {selected.gender}</p>
             <p className="text-sm text-gray-600">
               DOB: {selected.date_of_birth ? new Date(selected.date_of_birth).toLocaleDateString('en-GB') : '-'}

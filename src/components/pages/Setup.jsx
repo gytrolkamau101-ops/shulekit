@@ -3,6 +3,7 @@ import ImagePicker from '../ImagePicker'
 import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, PageTitle, input, btn, btnGreen, btnGhost, th, td, fmt } from '../ui'
 import { logAudit } from '../../lib/audit'
+import StreamsCard from './StreamsCard'
 
 const TABS = ['School identity', 'Terms', 'Grades & Subjects', 'Class subjects', 'Baskets', 'Grading', 'Fee Structure', 'Fee heads', 'Payments', 'Promotion', 'Calendar', 'Staff', 'Parents', 'Audit']
 
@@ -516,13 +517,13 @@ function CalendarTab({ school }) {
             const { error } = await supabase.rpc('seed_cbc_primary_grades', { p_school_id: school.id })
             if (error) alert(error.message); else { alert('Primary CBC grades seeded'); window.location.reload() }
           }}>Seed primary CBC grades</button>
-        <p className="text-xs text-slate-500 mt-3">Streams (East, West, A, B…): after running <code>22_v37_streams_status.sql</code>, insert via Supabase or next Setup update. Admissions already offer a stream dropdown when streams exist.</p>
           <button type="button" className={btn} onClick={async () => {
             const { error } = await supabase.rpc('seed_secondary_grades', { p_school_id: school.id })
             if (error) alert(error.message); else { alert('Secondary grades seeded'); window.location.reload() }
           }}>Seed secondary Forms 1–4</button>
         </div>
       </Card>
+      <StreamsCard school={school} />
 
       <Card title="Add event">
         <form onSubmit={addEvent} className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -643,8 +644,6 @@ function SchoolIdentityTab({ school, user }) {
             maxW={400}
             previewClass="h-16 object-contain rounded-lg border"
           />
-            </div>
-          )}
         </div>
         <input className={input} placeholder="P.O. Box" value={form.po_box} onChange={(e) => setForm({ ...form, po_box: e.target.value })} disabled={!canEdit} />
         <input className={input} placeholder="Physical address" value={form.physical_address} onChange={(e) => setForm({ ...form, physical_address: e.target.value })} disabled={!canEdit} />

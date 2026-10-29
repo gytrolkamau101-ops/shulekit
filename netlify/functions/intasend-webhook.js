@@ -1,11 +1,21 @@
 /**
- * IntaSend webhook — require challenge; upgrade plans only for known prices.
- * Platform SaaS plans only for auto-upgrade. School fees are paid to school till.
+ * IntaSend webhook — challenge required for plan upgrades; prices must match STK.
  */
 
-const PLAN_DAYS = { basic: 120, premium: 120, trial: 90 }
-const PLAN_CAPS = { basic: 250, premium: 500, trial: 250 }
-const PLAN_PRICES = { basic: 2000, premium: 4000 }
+const PLAN_DAYS = { basic: 120, premium: 120, pro: 120, trial: 90 }
+const PLAN_CAPS = { basic: 200, premium: 500, pro: 1000, trial: 250 }
+const PLAN_PRICES = { basic: 2000, premium: 3500, pro: 5000 }
+const PLAN_STAFF = { basic: 25, premium: 50, pro: 80, trial: 30 }
+const PLAN_PARENT = { basic: 150, premium: 350, pro: 800, trial: 200 }
+
+function resolvePlanId(raw) {
+  const s = String(raw || '').toLowerCase().trim()
+  if (PLAN_PRICES[s] != null) return s
+  if (s.includes('pro') && !s.includes('premium')) return 'pro'
+  if (s.includes('premium')) return 'premium'
+  if (s.includes('basic') || s === 'termly') return 'basic'
+  return null
+}
 
 export async function handler(event) {
   if (event.httpMethod === 'GET') {
@@ -15,7 +25,7 @@ export async function handler(event) {
     return { statusCode: 405, body: 'Method not allowed' }
   }
 
-  const challenge = process.env.INTASEND_WEBHOOK_CHALLENGE || ''
+  const challenge = (process.env.INTASEND_WEBHOOK_CHALLENGE || '').trim()
   let body
   try {
     body = JSON.parse(event.body || '{}')
@@ -23,13 +33,13 @@ export async function handler(event) {
     return { statusCode: 400, body: 'Invalid JSON' }
   }
 
-  const incoming =
+  const incoming = String(
     body.challenge ||
-    event.headers['x-intasend-challenge'] ||
-    event.headers['X-IntaSend-Challenge'] ||
-    ''
+      event.headers['x-intasend-challenge'] ||
+      event.headers['X-IntaSend-Challenge'] ||
+      ''
+  ).trim()
 
-  // Require challenge when configured (prevents forged plan upgrades)
   if (challenge) {
     if (!incoming || incoming !== challenge) {
       return { statusCode: 401, body: 'Invalid challenge' }
@@ -44,21 +54,14 @@ export async function handler(event) {
 
   let planId = null
   let schoolId = null
-  let studentId = null
-  let feeAmount = null
   let refKind = 'unknown'
 
   if (apiRef.startsWith('fee-')) {
     refKind = 'fee'
-    const parts = apiRef.split('-')
-    // fee-{uuid}-{uuid}-{amount}-{ts}
-    schoolId = parts[1] || null
-    studentId = parts[2] || null
-    feeAmount = Number(parts[3]) || amount
   } else if (apiRef.startsWith('plan-')) {
     refKind = 'plan'
     const parts = apiRef.split('-')
-    planId = parts[1] || 'basic'
+    planId = resolvePlanId(parts[1]) || parts[1] || null
     if (parts.length >= 4 && parts[2] && parts[2].length > 20) schoolId = parts[2]
   } else if (apiRef.startsWith('sk-')) {
     refKind = 'plan'
@@ -90,22 +93,30 @@ export async function handler(event) {
       state,
       amount,
       plan_id: planId,
-      raw: { topic: body.topic, state, api_ref: apiRef }, // strip excess PII in storage if needed
+      raw: { topic: body.topic, state, api_ref: apiRef },
     }),
   })
 
-  if (state !== 'COMPLETE' && state !== 'COMPLETED' && state !== 'PAID') {
+  if (!['COMPLETE', 'COMPLETED', 'PAID'].includes(state)) {
     return { statusCode: 200, body: JSON.stringify({ ok: true, ignored: state }) }
   }
 
+  // Refuse automatic plan upgrades if webhook challenge is not configured
   if (refKind === 'plan' && schoolId && planId) {
-    // Only upgrade if amount matches known plan price (blocks forged cheap upgrades)
+    if (!challenge) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ ok: true, skipped: 'challenge_not_configured' }),
+      }
+    }
     const expected = PLAN_PRICES[planId]
-    if (expected != null && amount != null && Number(amount) < expected) {
+    if (expected == null) {
+      return { statusCode: 200, body: JSON.stringify({ ok: true, skipped: 'unknown_plan' }) }
+    }
+    if (amount != null && Number(amount) + 0.01 < expected) {
       return { statusCode: 200, body: JSON.stringify({ ok: true, skipped: 'amount_mismatch' }) }
     }
     const days = PLAN_DAYS[planId] || 120
-    const cap = PLAN_CAPS[planId] || 250
     const exp = new Date()
     exp.setDate(exp.getDate() + days)
     await fetch(`${url}/rest/v1/schools?id=eq.${schoolId}`, {
@@ -114,7 +125,9 @@ export async function handler(event) {
       body: JSON.stringify({
         plan: planId,
         plan_expires_at: exp.toISOString(),
-        student_cap: cap,
+        student_cap: PLAN_CAPS[planId] || 200,
+        staff_cap: PLAN_STAFF[planId] || 25,
+        parent_cap: PLAN_PARENT[planId] || 150,
       }),
     })
     try {
@@ -124,11 +137,6 @@ export async function handler(event) {
         body: JSON.stringify({ p_school_id: schoolId, p_plan_id: planId }),
       })
     } catch (_) {}
-  }
-
-  // School fee STK via platform is disabled (v23+). Do not auto-insert fee_payments.
-  if (refKind === 'fee') {
-    // Event already logged in subscription_events above for audit.
   }
 
   return { statusCode: 200, body: JSON.stringify({ ok: true }) }

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Card, Scroll, Alert, PageTitle, input, btnGreen, th, td } from '../ui'
+import { canEditResources } from '../../lib/roles'
 
 const TYPES = ['Book', 'Material', 'Equipment', 'Furniture', 'Curriculum', 'Exam paper', 'Other']
-import { canEditResources } from '../../lib/roles'
 const BUCKET = 'school-resources'
 
 export default function Resources({ school, user }) {

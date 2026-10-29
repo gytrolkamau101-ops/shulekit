@@ -134,14 +134,55 @@ export function Modal({ open, onClose, title, children }) {
   )
 }
 
+const toastListeners = new Set()
+
 export function toast(message, kind = 'ok') {
-  const el = document.createElement('div')
-  el.className = `fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl border-2 shadow-xl text-sm font-bold max-w-sm ${
-    kind === 'error' ? 'bg-red-50 border-red-300 text-red-900' : 'bg-emerald-50 border-emerald-300 text-emerald-900'
-  }`
-  el.textContent = message
-  document.body.appendChild(el)
-  setTimeout(() => el.remove(), 3200)
+  const payload = { id: Date.now() + Math.random(), message, kind }
+  toastListeners.forEach((fn) => fn(payload))
+  // Fallback if ToastHost is not mounted
+  if (toastListeners.size === 0 && typeof document !== 'undefined') {
+    const el = document.createElement('div')
+    el.className = `fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl border-2 shadow-xl text-sm font-bold max-w-sm ${
+      kind === 'error' ? 'bg-red-50 border-red-300 text-red-900' : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+    }`
+    el.textContent = message
+    document.body.appendChild(el)
+    setTimeout(() => el.remove(), 3200)
+  }
+}
+
+/** Mount once in App — shows toast() messages */
+export function ToastHost() {
+  const [items, setItems] = useState([])
+  useEffect(() => {
+    const onToast = (payload) => {
+      setItems((prev) => [...prev.slice(-4), payload])
+      setTimeout(() => {
+        setItems((prev) => prev.filter((x) => x.id !== payload.id))
+      }, 3200)
+    }
+    toastListeners.add(onToast)
+    return () => toastListeners.delete(onToast)
+  }, [])
+  if (!items.length) return null
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[min(92vw,24rem)] pointer-events-none">
+      {items.map((t) => (
+        <div
+          key={t.id}
+          className={`px-4 py-3 rounded-xl border-2 shadow-xl text-sm font-bold ${
+            t.kind === 'error'
+              ? 'bg-red-50 border-red-300 text-red-900'
+              : t.kind === 'info'
+                ? 'bg-blue-50 border-blue-300 text-blue-900'
+                : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+          }`}
+        >
+          {t.message}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function PasswordInput({ value, onChange, placeholder = 'Password', className = '', ...rest }) {

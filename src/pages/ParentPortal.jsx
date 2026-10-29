@@ -112,6 +112,27 @@ export default function ParentPortal({ session }) {
   )
 }
 
+
+function printFeeStatement({ student, schoolName, rows, termLabel }) {
+  const body = (rows || []).map((r) =>
+    `<tr><td>${r.payment_date || ''}</td><td>${r.payment_method || ''}</td><td style="text-align:right">${Number(r.amount_paid||0).toLocaleString()}</td><td>${r.receipt_no||''}</td></tr>`
+  ).join('')
+  const total = (rows || []).reduce((s, r) => s + Number(r.amount_paid || 0), 0)
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Fee statement</title>
+  <style>body{font-family:system-ui;margin:24px;color:#0f172a}table{width:100%;border-collapse:collapse}td,th{border:1px solid #cbd5e1;padding:6px;font-size:12px}
+  h1{font-size:18px;text-align:center}</style></head><body>
+  <h1>${schoolName || 'School'}</h1>
+  <p style="text-align:center">Fee statement · ${termLabel || ''} · ${student.first_name} ${student.last_name} (${student.admission_no||''})</p>
+  <table><thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Receipt</th></tr></thead>
+  <tbody>${body}</tbody>
+  <tfoot><tr><td colspan="2"><strong>Total paid</strong></td><td style="text-align:right"><strong>KES ${total.toLocaleString()}</strong></td><td></td></tr></tfoot>
+  </table>
+  <p style="text-align:center;margin-top:24px;font-size:10px;color:#94a3b8">ShuleMoja</p>
+  <script>window.onload=()=>setTimeout(()=>window.print(),300)</script></body></html>`
+  const w = window.open('', '_blank')
+  if (w) { w.document.write(html); w.document.close() }
+}
+
 function ChildDetail({ student, schoolId, session }) {
   const [terms, setTerms] = useState([])
   const [termId, setTermId] = useState('')
@@ -124,6 +145,8 @@ function ChildDetail({ student, schoolId, session }) {
   const [loading, setLoading] = useState(true)
   const [schoolPay, setSchoolPay] = useState(null)
   const [schoolPlan, setSchoolPlan] = useState(null)
+  const [canDownload, setCanDownload] = useState(false)
+  const [schoolName, setSchoolName] = useState('')
   const [circulars, setCirculars] = useState([])
   const [timetable, setTimetable] = useState([])
   const [gradeId, setGradeId] = useState(null)
@@ -220,10 +243,13 @@ function ChildDetail({ student, schoolId, session }) {
 
       const { data: schMeta } = await supabase
         .from('schools')
-        .select('plan, plan_expires_at')
+        .select('plan, plan_expires_at, school_name')
         .eq('id', schoolId)
         .maybeSingle()
       const prem = planEntitlements(schMeta || {})
+      setCanDownload(!!prem.parentDownloads)
+      setSchoolPlan(schMeta?.plan || null)
+      setSchoolName(schMeta?.school_name || '')
       let circ = []
       let slots = []
       if (prem.circulars) {
@@ -360,6 +386,25 @@ function ChildDetail({ student, schoolId, session }) {
                   After you pay, the school records the payment in ShuleMoja. Your balance updates when they confirm — usually the same day.
                 </p>
               </div>
+            )}
+            {canDownload && payments.length > 0 && (
+              <button
+                type="button"
+                className="mt-3 mb-1 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-black shadow-md"
+                onClick={() =>
+                  printFeeStatement({
+                    student,
+                    schoolName,
+                    rows: payments,
+                    termLabel: term ? `Term ${term.term} ${term.year}` : '',
+                  })
+                }
+              >
+                Download fee statement
+              </button>
+            )}
+            {!canDownload && (
+              <p className="text-xs text-slate-500 mt-2">Fee statement download is a Premium parent benefit.</p>
             )}
             {payments.length > 0 && (
               <Scroll>

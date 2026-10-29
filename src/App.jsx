@@ -4,7 +4,7 @@ import Login from './pages/Login'
 import ErrorBoundary from './components/ErrorBoundary'
 import { applyTheme, getTheme } from './lib/prefs'
 import AccountGate from './pages/AccountGate'
-import { input, btn, Alert, ToastHost, PasswordInput, Spinner } from './components/ui'
+import { input, btn, Alert, PasswordInput, Spinner } from './components/ui'
 
 function ResetPassword({ onDone }) {
   const [password, setPassword] = useState('')
@@ -71,7 +71,6 @@ export default function App() {
   if (session && recovering) return <ResetPassword onDone={() => setRecovering(false)} />
   return (
     <ErrorBoundary>
-      <ToastHost />
       {session ? <AccountGate session={session} /> : <Login />}
     </ErrorBoundary>
   )
