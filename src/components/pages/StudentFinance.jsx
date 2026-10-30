@@ -397,9 +397,9 @@ export default function StudentFinance({ school, term }) {
                           type="button"
                           className="text-xs font-bold text-blue-700 underline"
                           onClick={() => {
-                            const st = students.find((x) => x.id === b.student_id) || {
-                              first_name: b.name?.split(' ')[0] || '',
-                              last_name: b.name?.split(' ').slice(1).join(' ') || '',
+                            const st = students.find((x) => x.id === b.id) || {
+                              first_name: b.first_name || '',
+                              last_name: b.last_name || '',
                               admission_no: b.admission_no || '',
                             }
                             printFeeStatement(st, b.paid || 0, b.balance)
@@ -458,8 +458,8 @@ export default function StudentFinance({ school, term }) {
         <p className="text-sm text-slate-600 mb-2">Learners still owing this term. Use Messages to open WhatsApp reminders.</p>
         <ul className="text-sm space-y-1 max-h-48 overflow-y-auto">
           {balances.filter((b) => b.balance > 0).slice(0, 30).map((b) => (
-            <li key={b.student_id} className="flex justify-between border-b border-slate-100 py-1">
-              <span>{b.name}</span>
+            <li key={b.id} className="flex justify-between border-b border-slate-100 py-1">
+              <span>{b.first_name} {b.last_name}</span>
               <span className="font-semibold text-red-600">KES {fmt(b.balance)}</span>
             </li>
           ))}

@@ -145,34 +145,6 @@ export default function Exams({ school, user, term }) {
         .eq('grade_id', selectedGrade)
         .eq('term_id', term.id)
       const basketIds = (assigns || []).map((a) => a.basket_id)
-      if (!basketIds.length) return
-      const { data: items } = await supabase
-        .from('subject_basket_items')
-        .select('subjects(*)')
-        .eq('school_id', school.id)
-        .in('basket_id', basketIds)
-      const seen = new Set()
-      const list = []
-      ;(items || []).forEach((row) => {
-        if (row.subjects && !seen.has(row.subjects.id)) {
-          seen.add(row.subjects.id)
-          list.push(row.subjects)
-        }
-      })
-      if (list.length) setSubjects(list)
-    })()
-  }, [selectedGrade, term, school.id])
-
-  useEffect(() => {
-    ;(async () => {
-      if (!selectedGrade || !term) return
-      const { data: assigns } = await supabase
-        .from('grade_basket_assignments')
-        .select('basket_id')
-        .eq('school_id', school.id)
-        .eq('grade_id', selectedGrade)
-        .eq('term_id', term.id)
-      const basketIds = (assigns || []).map((a) => a.basket_id)
       if (basketIds.length) {
         const { data: items } = await supabase
           .from('subject_basket_items')

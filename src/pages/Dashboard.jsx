@@ -121,8 +121,9 @@ export default function Dashboard({ session }) {
       if (!isOnline()) return
       const n = queueCount()
       if (n > 0) {
-        const r = await flushQueue(supabase)
+        const r = await flushQueue({})
         if (r.flushed) toast(`Synced ${r.flushed} offline item(s)`, 'ok')
+        else if (r.left) console.info('Offline queue items waiting for handlers', r.left)
       }
     }
     sync()

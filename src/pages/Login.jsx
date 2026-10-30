@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { input, btn, btnGreen, Alert, PasswordInput, Spinner } from '../components/ui'
 import { getSettings } from '../lib/platform'
 import { payPlatformPlan, hostedCheckoutPlatform } from '../lib/intasend'
+import { captchaRequired, renderTurnstile, resetTurnstile, getTurnstileSiteKey } from '../lib/captcha'
+import { DEFAULT_PRIVACY } from '../lib/privacyDefault'
 import { DEFAULT_PLANS } from '../lib/plans'
 import { BRAND_NAME, COMPANY_NAME, TAGLINE, LOGO_TEXT, LOGO_C2, PRODUCT_LINE, COUNTRY_LINE, COPYRIGHT } from '../brand'
 
@@ -25,7 +27,8 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
-  const [view, setView] = useState('auth') // auth | pricing | terms | how | contact
+  const [view, setView] = useState('auth')
+  const [cmsPrivacy, setCmsPrivacy] = useState(null) // auth | pricing | terms | how | contact
   const [theme, setTheme] = useState({
     primary: '#1d4ed8',
     logo_text: 'SM',
@@ -82,6 +85,24 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
   const [showPricing, setShowPricing] = useState(false)
   const [payStep, setPayStep] = useState(null) // plan object when collecting phone/email
   const [agreedTerms, setAgreedTerms] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const captchaRef = useRef(null)
+  const captchaWidget = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (mode !== 'register' || !captchaRequired()) return
+      if (!captchaRef.current) return
+      const id = await renderTurnstile(captchaRef.current, (tok) => {
+        if (!cancelled) setCaptchaToken(tok || '')
+      })
+      if (!cancelled) captchaWidget.current = id
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode])
 
   const reset = () => {
     setError('')
@@ -91,7 +112,8 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
   useEffect(() => {
     ;(async () => {
       try {
-        const s = await getSettings(['theme', 'pricing', 'terms', 'how_it_works', 'contacts'])
+        getSetting('privacy').then((p) => p && setCmsPrivacy(p)).catch(() => {});
+    const s = await getSettings(['theme', 'pricing', 'terms', 'how_it_works', 'contacts'])
         if (s.theme) setTheme((p) => ({ ...p, ...s.theme }))
         if (s.pricing?.plans?.length) setPricing(s.pricing)
         else setPricing(DEFAULT_PLANS)
@@ -229,7 +251,12 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
           ? { full_name: fullName, school_name: schoolName, school_level: schoolLevel, referral_code: referralCode.trim().toUpperCase() }
           : { full_name: fullName, school_code: schoolCode, role }
     }
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = if (mode === 'register' && captchaRequired() && !captchaToken) {
+      setBusy(false)
+      setError("Complete the captcha before creating an account.")
+      return
+    }
+    await supabase.auth.signUp({
       email,
       password,
       options: { data: meta },
@@ -287,6 +314,8 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
         ? null
         : view === 'terms'
           ? terms
+          : view === 'privacy'
+            ? (cmsPrivacy && (cmsPrivacy.title || cmsPrivacy.body) ? cmsPrivacy : DEFAULT_PRIVACY)
           : view === 'how'
             ? how
             : contacts
@@ -550,9 +579,19 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
                   >
                     Terms &amp; Conditions
                   </button>
-                  {' '}and understand school fees are paid to the school, not through ShuleMoja platform fee collection.
+                  {' '}and{' '}
+                  <button type="button" className="text-blue-700 font-bold underline" onClick={() => setView('privacy')}>
+                    Privacy Policy
+                  </button>
+                  . School fees go to the school, not ShuleMoja fee collection.
                 </span>
               </label>
+            )}
+            {mode === 'register' && captchaRequired() && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-bold text-slate-600 mb-2">Security check</p>
+                <div ref={captchaRef} className="min-h-[65px]" />
+              </div>
             )}
             <button disabled={busy || (mode === 'register' && !agreedTerms)} className={`${btn} w-full py-3.5 text-base font-black shadow-lg shadow-blue-600/30 border border-blue-500/30`}>
               {busy ? (

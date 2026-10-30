@@ -44,6 +44,7 @@ export default function SuperAdmin({ session }) {
   })
   const [pricing, setPricing] = useState({ currency: 'KES', plans: [] })
   const [terms, setTerms] = useState({ title: 'Terms & Conditions', body: '' })
+  const [privacy, setPrivacy] = useState({ title: 'Privacy Policy', body: '' })
   const [how, setHow] = useState({ title: 'How it works', body: '' })
   const [contacts, setContacts] = useState({ title: 'Contact us', email: '', phone: '', whatsapp: '', address: '' })
   const [savingCms, setSavingCms] = useState(false)
@@ -74,12 +75,15 @@ export default function SuperAdmin({ session }) {
       getSetting('theme'),
       getSetting('pricing'),
       getSetting('terms'),
+      getSetting('privacy'),
       getSetting('how_it_works'),
       getSetting('contacts'),
     ])
     if (th) setTheme((p) => ({ ...p, ...th }))
     if (pr?.plans?.length) setPricing(pr)
     else setPricing(DEFAULT_PLANS)
+    const pv = await getSetting('privacy')
+    if (pv) setPrivacy(pv)
     if (te) setTerms(te)
     if (hi) setHow(hi)
     if (co) setContacts(co)
@@ -669,6 +673,7 @@ export default function SuperAdmin({ session }) {
           <div className="space-y-4">
             {[
               { key: 'terms', label: 'Terms & Conditions', state: terms, set: setTerms },
+              { key: 'privacy', label: 'Privacy Policy (Kenya DPA)', state: privacy, set: setPrivacy },
               { key: 'how_it_works', label: 'How it works', state: how, set: setHow },
             ].map((block) => (
               <div key={block.key} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">

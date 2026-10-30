@@ -38,7 +38,7 @@ export default function Attendance({ school, term, user }) {
     setLoading(true)
     const { data: enrolled } = await supabase
       .from('student_enrollments')
-      .select('students(id, admission_no, first_name, last_name)')
+      .select('students(id, admission_no, first_name, last_name, parent_phone)')
       .eq('school_id', school.id)
       .eq('term_id', term.id)
       .eq('grade_id', gradeId)
