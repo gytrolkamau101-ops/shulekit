@@ -252,6 +252,7 @@ export default function Exams({ school, user, term }) {
           Add grades and subjects in School Setup first, then come back here to enter marks.
         </Alert>
       ) : (
+        <>
         {exams.length === 0 && (
           <Alert kind="ok">
             No exams for this term yet. Tap <strong>+ Create exam</strong> (top right), name it (e.g. CAT 1), save, then enter marks.
@@ -344,6 +345,7 @@ export default function Exams({ school, user, term }) {
             </>
           )}
         </Card>
+        </>
       )}
     </div>
   )
