@@ -4,7 +4,7 @@ import { Card, Scroll, Alert, PageTitle, input, btnGreen, th, td } from '../ui'
 import { BOM_ROLES, canEditData } from '../../lib/roles'
 
 export default function BomPortal({ school, user }) {
-  const canEdit = BOM_ROLES.includes(user.role) || canEditData(user.role)
+  const canEdit = BOM_ROLES.includes(user?.role) || canEditData(user?.role) || ['Principal','Deputy Principal','Secretary'].includes(user?.role)
   const [ann, setAnn] = useState([])
   const [polls, setPolls] = useState([])
   const [error, setError] = useState('')
@@ -25,7 +25,7 @@ export default function BomPortal({ school, user }) {
   const postAnn = async (e) => {
     e.preventDefault()
     if (!canEdit) return
-    const { error: err } = await supabase.from('bom_announcements').insert([{ school_id: school.id, title: aForm.title, body: aForm.body, created_by: user.id }])
+    const { error: err } = await supabase.from('bom_announcements').insert([{ school_id: school.id, title: aForm.title, body: aForm.body, created_by: user?.id }])
     if (err) return setError(err.message + ' — run 23_v38_modules.sql')
     setAForm({ title: '', body: '' })
     load()
@@ -35,7 +35,7 @@ export default function BomPortal({ school, user }) {
     e.preventDefault()
     if (!canEdit) return
     const options = pForm.options.split(',').map((s) => s.trim()).filter(Boolean)
-    const { error: err } = await supabase.from('bom_polls').insert([{ school_id: school.id, question: pForm.question, options, created_by: user.id }])
+    const { error: err } = await supabase.from('bom_polls').insert([{ school_id: school.id, question: pForm.question, options, created_by: user?.id }])
     if (err) return setError(err.message)
     setPForm({ question: '', options: 'Yes, No, Abstain' })
     load()

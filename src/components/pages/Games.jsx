@@ -87,6 +87,27 @@ export default function Games({ school, term, user }) {
     ['expenses', 'Expenses'],
   ]
 
+  const delEvent = async (id) => {
+    if (!canEdit || !confirm('Delete fixture?')) return
+    await supabase.from('games_events').delete().eq('id', id)
+    load()
+  }
+  const delAsset = async (id) => {
+    if (!canEdit || !confirm('Delete item?')) return
+    await supabase.from('games_assets').delete().eq('id', id)
+    load()
+  }
+  const delPlayer = async (id) => {
+    if (!canEdit || !confirm('Remove player?')) return
+    await supabase.from('games_players').delete().eq('id', id)
+    load()
+  }
+  const delExp = async (id) => {
+    if (!canEdit || !confirm('Delete expense?')) return
+    await supabase.from('games_expenses').delete().eq('id', id)
+    load()
+  }
+
   return (
     <div className="space-y-4">
       <PageTitle>Games</PageTitle>
@@ -133,6 +154,7 @@ export default function Games({ school, term, user }) {
                     <td className={td}>{e.title}</td>
                     <td className={td}>{e.sport}</td>
                     <td className={td}>{e.opponent || '—'}</td>
+                    {canEdit && <td className={td}><button type="button" className="text-red-600 text-xs font-bold" onClick={() => delEvent(e.id)}>Delete</button></td>}
                   </tr>
                 ))}
               </tbody>

@@ -6,7 +6,6 @@ import TopBar from '../components/TopBar'
 import { flushQueue, queueCount, isOnline } from '../lib/offline'
 import { toast, btn, Spinner } from '../components/ui'
 import PremiumGate from '../components/PremiumGate'
-import { PremiumSupportFab } from '../components/PremiumSupport'
 
 const MainDashboard = lazy(() => import('../components/pages/MainDashboard'))
 const Students = lazy(() => import('../components/pages/Students'))
@@ -226,7 +225,6 @@ export default function Dashboard({ session }) {
             )}
           </Suspense>
         </main>
-        <PremiumSupportFab school={school} user={user} />
       </div>
     </div>
   )

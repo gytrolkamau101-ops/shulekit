@@ -333,13 +333,12 @@ export default function SuperAdmin({ session }) {
                       <td className={`${td} text-white font-medium`}>{s.school_name}</td>
                       <td className={`${td} text-cyan-400 font-mono text-xs`}>{s.school_code}</td>
                       <td className={td}>
-                        <select className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-sm text-white" value={s.plan || 'free'} onChange={(e) => setPlan(s, e.target.value)}>
-                          <option value="free">free</option>
+                        <select className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-sm text-white" value={s.plan || 'basic'} onChange={(e) => setPlan(s, e.target.value)}>
                           <option value="trial">trial</option>
                           <option value="basic">basic</option>
+                          <option value="premium">premium</option>
                           <option value="pro">pro</option>
-                          <option value="termly">termly</option>
-                          <option value="yearly">yearly</option>
+                          <option value="free">free</option>
                         </select>
                       </td>
                       <td className={td}>

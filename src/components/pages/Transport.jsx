@@ -4,7 +4,7 @@ import { Card, Scroll, Alert, PageTitle, input, btnGreen, th, td } from '../ui'
 import { TRANSPORT_ROLES, canEditData } from '../../lib/roles'
 
 export default function Transport({ school, user }) {
-  const canEdit = TRANSPORT_ROLES.includes(user?.role) || canEditData(user?.role)
+  const canEdit = TRANSPORT_ROLES.includes(user?.role) || canEditData(user?.role) || ['Principal','Deputy Principal','Senior Teacher','Secretary'].includes(user?.role)
   const [vehicles, setVehicles] = useState([])
   const [trips, setTrips] = useState([])
   const [error, setError] = useState('')
@@ -52,6 +52,19 @@ export default function Transport({ school, user }) {
     load()
   }
 
+  const delVehicle = async (id) => {
+    if (!canEdit || !confirm('Delete this vehicle?')) return
+    const { error: err } = await supabase.from('fleet_vehicles').delete().eq('id', id)
+    if (err) setError(err.message)
+    else load()
+  }
+  const delTrip = async (id) => {
+    if (!canEdit || !confirm('Delete this trip?')) return
+    const { error: err } = await supabase.from('transport_trips').delete().eq('id', id)
+    if (err) setError(err.message)
+    else load()
+  }
+
   return (
     <div className="space-y-4">
       <PageTitle title="Transport" subtitle="Fleet, trips and driver expense summaries (Premium)" />
@@ -86,9 +99,14 @@ export default function Transport({ school, user }) {
       <Card title="Fleet">
         <Scroll>
           <table className="min-w-full text-sm">
-            <thead><tr><th className={th}>Plate</th><th className={th}>Name</th><th className={th}>Driver</th></tr></thead>
+            <thead><tr><th className={th}>Plate</th><th className={th}>Name</th><th className={th}>Driver</th>{canEdit && <th className={th}></th>}</tr></thead>
             <tbody>{vehicles.map((v) => (
-              <tr key={v.id}><td className={td}>{v.plate}</td><td className={td}>{v.vehicle_name}</td><td className={td}>{v.driver_name} {v.driver_phone}</td></tr>
+              <tr key={v.id}>
+                <td className={td}>{v.plate}</td>
+                <td className={td}>{v.vehicle_name}</td>
+                <td className={td}>{v.driver_name} {v.driver_phone}</td>
+                {canEdit && <td className={td}><button type="button" className="text-red-600 text-xs font-bold" onClick={() => delVehicle(v.id)}>Delete</button></td>}
+              </tr>
             ))}</tbody>
           </table>
         </Scroll>
@@ -96,13 +114,14 @@ export default function Transport({ school, user }) {
       <Card title="Recent trips">
         <Scroll>
           <table className="min-w-full text-sm">
-            <thead><tr><th className={th}>Date</th><th className={th}>Vehicle</th><th className={th}>Destination</th><th className={th}>Expense</th></tr></thead>
-            <tbody>{trips.map((t) => (
-              <tr key={t.id}>
-                <td className={td}>{t.trip_date}</td>
-                <td className={td}>{t.fleet_vehicles?.plate || '—'}</td>
-                <td className={td}>{t.destination}</td>
-                <td className={td}>KES {Number(t.expense_amount || 0).toLocaleString()}</td>
+            <thead><tr><th className={th}>Date</th><th className={th}>Vehicle</th><th className={th}>Destination</th><th className={th}>Expense</th>{canEdit && <th className={th}></th>}</tr></thead>
+            <tbody>{trips.map((tr) => (
+              <tr key={tr.id}>
+                <td className={td}>{tr.trip_date}</td>
+                <td className={td}>{tr.fleet_vehicles?.plate || '—'}</td>
+                <td className={td}>{tr.destination}</td>
+                <td className={td}>KES {Number(tr.expense_amount || 0).toLocaleString()}</td>
+                {canEdit && <td className={td}><button type="button" className="text-red-600 text-xs font-bold" onClick={() => delTrip(tr.id)}>Delete</button></td>}
               </tr>
             ))}</tbody>
           </table>
