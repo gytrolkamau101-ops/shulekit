@@ -7,7 +7,7 @@ const TYPES = ['Book', 'Material', 'Equipment', 'Furniture', 'Curriculum', 'Exam
 const BUCKET = 'school-resources'
 
 export default function Resources({ school, user }) {
-  const canEdit = canEditResources(user.role)
+  const canEdit = canEditResources(user?.role)
   const [resources, setResources] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')

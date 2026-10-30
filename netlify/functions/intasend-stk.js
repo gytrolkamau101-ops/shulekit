@@ -6,13 +6,15 @@
 const PLAN_PRICES = {
   basic: 2000,
   premium: 3500,
+  pro: 5000,
 }
 
 /** Map CMS names/ids → canonical plan */
 function resolvePlanId(raw) {
   const s = String(raw || '').toLowerCase().trim()
   if (PLAN_PRICES[s]) return s
-  if (s.includes('premium') || s.includes('pro') || s.includes('custom') || s === 'yearly') return 'premium'
+  if (s === 'pro' || (s.includes('pro') && !s.includes('premium'))) return 'pro'
+  if (s.includes('premium') || s.includes('custom') || s === 'yearly') return 'premium'
   if (s.includes('basic') || s === 'termly' || s.includes('starter')) return 'basic'
   return null
 }
@@ -113,7 +115,7 @@ export async function handler(event) {
         secret_configured: !!secret,
         secret_mode: secret.includes('_test_') ? 'test' : secret.includes('_live_') ? 'live' : secret ? 'unknown' : 'missing',
         live_flag: live,
-        plans: ['basic', 'premium'],
+        plans: ['basic', 'premium', 'pro'],
       }),
     }
   }

@@ -4,7 +4,7 @@ import { Card, Scroll, Alert, PageTitle, input, btnGreen, th, td } from '../ui'
 import { BOARDING_ROLES, canEditData } from '../../lib/roles'
 
 export default function Boarding({ school, user }) {
-  const canEdit = BOARDING_ROLES.includes(user.role) || canEditData(user.role)
+  const canEdit = BOARDING_ROLES.includes(user?.role) || canEditData(user?.role)
   const [houses, setHouses] = useState([])
   const [assignments, setAssignments] = useState([])
   const [students, setStudents] = useState([])

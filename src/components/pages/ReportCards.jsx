@@ -104,19 +104,21 @@ export default function ReportCards({ school, term }) {
       ? `<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0.07;font-size:72px;font-weight:900;transform:rotate(-30deg)">ShuleMoja</div>`
       : ''
     const head = subjects.map((s) => `<th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">${s}</th>`).join('')
-    const body = rows
-      .map((r) => {
+    const ranked = [...rows].sort((a, b) => Number(b.average || 0) - Number(a.average || 0))
+    const body = ranked
+      .map((r, i) => {
         const cells = subjects
           .map((s) => {
             const m = r.subjects[s]
-            return `<td style="padding:6px;border:1px solid #e2e8f0;text-align:center;font-size:12px">${m ? m.marks ?? '—' : '—'}</td>`
+            return `<td style="padding:3px 4px;border:1px solid #e2e8f0;text-align:center;font-size:9px">${m ? m.marks ?? '—' : '—'}</td>`
           })
           .join('')
         return `<tr>
-          <td style="padding:6px;border:1px solid #e2e8f0;font-size:12px">${r.student.admission_no || ''}</td>
-          <td style="padding:6px;border:1px solid #e2e8f0;font-size:12px">${r.student.first_name} ${r.student.last_name}</td>
+          <td style="padding:3px 4px;border:1px solid #e2e8f0;font-size:9px;text-align:center">${i + 1}</td>
+          <td style="padding:3px 4px;border:1px solid #e2e8f0;font-size:9px">${r.student.admission_no || ''}</td>
+          <td style="padding:3px 4px;border:1px solid #e2e8f0;font-size:9px">${r.student.first_name} ${r.student.last_name}</td>
           ${cells}
-          <td style="padding:6px;border:1px solid #e2e8f0;text-align:center;font-weight:700">${r.average}</td>
+          <td style="padding:3px 4px;border:1px solid #e2e8f0;text-align:center;font-weight:700;font-size:9px">${r.average}</td>
         </tr>`
       })
       .join('')
@@ -132,6 +134,7 @@ export default function ReportCards({ school, term }) {
       <div class="sub">${examName} · Term ${term?.term || ''} ${term?.year || ''}</div>
       <table>
         <thead><tr>
+          <th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">#</th>
           <th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">Adm</th>
           <th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">Name</th>
           ${head}
@@ -139,7 +142,21 @@ export default function ReportCards({ school, term }) {
         </tr></thead>
         <tbody>${body}</tbody>
       </table>
-      <div class="foot">${watermark ? 'Generated with ShuleMoja · Basic plan' : 'ShuleMoja'}</div>
+      <div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:24px;font-size:11px">
+        <div>
+          <p style="font-weight:700;margin:0 0 8px">Class teacher remarks</p>
+          <p style="border-bottom:1px solid #94a3b8;height:28px;margin:0 0 12px"></p>
+          <p style="margin:0">Name: __________________</p>
+          <p style="margin:8px 0 0">Signature: ____________</p>
+        </div>
+        <div>
+          <p style="font-weight:700;margin:0 0 8px">Headteacher remarks</p>
+          <p style="border-bottom:1px solid #94a3b8;height:28px;margin:0 0 12px"></p>
+          <p style="margin:0">Name: __________________</p>
+          <p style="margin:8px 0 0">Signature: ____________</p>
+        </div>
+      </div>
+      <div class="foot">${watermark ? 'Generated with ShuleMoja · Basic plan' : 'ShuleMoja · ' + (school?.school_name || '')}</div>
       <script>window.onload=()=>setTimeout(()=>window.print(),400)</script>
       </body></html>`
     const w = window.open('', '_blank')
@@ -197,6 +214,7 @@ export default function ReportCards({ school, term }) {
           <table className="min-w-full text-sm">
             <thead>
               <tr>
+                <th className={th}>#</th>
                 <th className={th}>Adm</th>
                 <th className={th}>Name</th>
                 {subjects.map((s) => (
@@ -208,8 +226,9 @@ export default function ReportCards({ school, term }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {[...rows].sort((a, b) => Number(b.average || 0) - Number(a.average || 0)).map((r, idx) => (
                 <tr key={r.student.id}>
+                  <td className={td}>{idx + 1}</td>
                   <td className={td}>{r.student.admission_no}</td>
                   <td className={td}>
                     {r.student.first_name} {r.student.last_name}

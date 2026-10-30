@@ -119,7 +119,7 @@ export default function Exams({ school, user, term }) {
           marks_obtained: obtained,
           total_marks: 100,
           grade: gradeFor(obtained, bands),
-          entered_by: user.id,
+          entered_by: user?.id,
         }
       })
     if (rows.length === 0) {

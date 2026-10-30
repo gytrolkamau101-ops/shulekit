@@ -25,8 +25,9 @@ function stkUrl() {
 
 export function normalizePlanId(raw) {
   const s = String(raw || '').toLowerCase().trim()
-  if (s === 'basic' || s === 'premium') return s
-  if (s.includes('premium') || s.includes('pro') || s.includes('custom') || s.includes('yearly')) return 'premium'
+  if (s === 'basic' || s === 'premium' || s === 'pro') return s
+  if (s.includes('pro') && !s.includes('premium')) return 'pro'
+  if (s.includes('premium') || s.includes('custom') || s.includes('yearly')) return 'premium'
   if (s.includes('basic') || s === 'termly' || s.includes('starter')) return 'basic'
   return s
 }
@@ -103,7 +104,7 @@ export async function payPlatformPlan({ planId, planName, phone, email }) {
   const ph = normalizeKePhone(phone)
   if (!ph) throw new Error('Enter a valid M-Pesa number (07XXXXXXXX or 2547XXXXXXXX)')
   const resolved = normalizePlanId(planId) || normalizePlanId(planName)
-  if (!['basic', 'premium'].includes(resolved)) {
+  if (!['basic', 'premium', 'pro'].includes(resolved)) {
     throw new Error(
       'Invalid plan "' + (planId || planName || '') + '". Use Basic or Premium (termly). Super Admin → Pricing: id must be basic or premium.'
     )

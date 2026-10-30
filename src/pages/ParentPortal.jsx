@@ -133,6 +133,22 @@ function printFeeStatement({ student, schoolName, rows, termLabel }) {
   if (w) { w.document.write(html); w.document.close() }
 }
 
+
+function printExamSummary({ student, schoolName, results, termLabel }) {
+  const body = (results || []).map((r) =>
+    `<tr><td>${r.exams?.exam_name || ''}</td><td>${r.subjects?.subject_name || ''}</td><td style="text-align:center">${r.marks_obtained ?? '—'}</td><td style="text-align:center">${r.grade || '—'}</td></tr>`
+  ).join('')
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Exam summary</title>
+  <style>body{font-family:system-ui;margin:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #cbd5e1;padding:6px;font-size:12px}
+  h1{font-size:18px;text-align:center}</style></head><body>
+  <h1>${schoolName || 'School'}</h1>
+  <p style="text-align:center">${student.first_name} ${student.last_name} · ${termLabel || ''}</p>
+  <table><thead><tr><th>Exam</th><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead><tbody>${body}</tbody></table>
+  <script>window.onload=()=>setTimeout(()=>window.print(),300)</script></body></html>`
+  const w = window.open('', '_blank')
+  if (w) { w.document.write(html); w.document.close() }
+}
+
 function ChildDetail({ student, schoolId, session }) {
   const [terms, setTerms] = useState([])
   const [termId, setTermId] = useState('')
@@ -430,6 +446,12 @@ function ChildDetail({ student, schoolId, session }) {
             )}
           </Card>
 
+          {canDownload && results.length > 0 && (
+              <button type="button" className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-black shadow-md mb-2"
+                onClick={() => printExamSummary({ student, schoolName, results, termLabel: term ? `Term ${term.term} ${term.year}` : '' })}>
+                Download exam summary
+              </button>
+            )}
           <Card title="Exam results" className="!p-0">
             {results.length === 0 ? (
               <p className="p-6 text-center text-sm text-slate-500">No results for this term</p>

@@ -4,7 +4,7 @@ import { Card, Scroll, Alert, PageTitle, input, btnGreen, th, td } from '../ui'
 import { TRANSPORT_ROLES, canEditData } from '../../lib/roles'
 
 export default function Transport({ school, user }) {
-  const canEdit = TRANSPORT_ROLES.includes(user.role) || canEditData(user.role)
+  const canEdit = TRANSPORT_ROLES.includes(user?.role) || canEditData(user?.role)
   const [vehicles, setVehicles] = useState([])
   const [trips, setTrips] = useState([])
   const [error, setError] = useState('')
@@ -44,7 +44,7 @@ export default function Transport({ school, user }) {
       purpose: tForm.purpose,
       expense_amount: Number(tForm.expense_amount) || 0,
       driver_summary: tForm.driver_summary,
-      created_by: user.id,
+      created_by: user?.id,
       status: 'completed',
     }])
     if (err) return setError(err.message)

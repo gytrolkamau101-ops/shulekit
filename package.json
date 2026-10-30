@@ -1,7 +1,7 @@
 {
   "name": "shulemoja",
   "private": true,
-  "version": "45.1.2",
+  "version": "47.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

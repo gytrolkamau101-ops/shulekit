@@ -123,7 +123,7 @@ export function PremiumSupportFab({ school, user }) {
       href={wa}
       target="_blank"
       rel="noreferrer"
-      className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-emerald-500 to-green-600 border-2 border-white/40 shadow-2xl shadow-emerald-700/40 active:scale-95"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-emerald-500 to-green-600 border-2 border-white/40 shadow-2xl shadow-emerald-700/50 active:scale-95"
       title="Premium WhatsApp support"
     >
       Support

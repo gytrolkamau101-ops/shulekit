@@ -29,7 +29,7 @@ export default function Setup({ school, user, term, onTermChange }) {
       {tab === 'School identity' && <SchoolIdentityTab school={school} user={user} />}
       {tab === 'Terms' && <TermsTab school={school} term={term} onTermChange={onTermChange} />}
       {tab === 'Grades & Subjects' && <GradesSubjectsTab school={school} />}
-      {tab === 'Class subjects' && <ClassSubjectsTab school={school} term={term} />}
+      {tab === 'Class subjects' && <ClassSubjectsTab school={school} term={term} user={user} />}
       {tab === 'Baskets' && <BasketsTab school={school} term={term} />}
       {tab === 'Grading' && <GradingTab school={school} />}
       {tab === 'Fee Structure' && <FeeStructureTab school={school} term={term} />}
@@ -658,7 +658,7 @@ function SchoolIdentityTab({ school, user }) {
   )
 }
 
-function ClassSubjectsTab({ school, term }) {
+function ClassSubjectsTab({ school, term, user }) {
   const [grades, setGrades] = useState([])
   const [subjects, setSubjects] = useState([])
   const [gradeId, setGradeId] = useState('')
@@ -704,14 +704,26 @@ function ClassSubjectsTab({ school, term }) {
       .eq('school_id', school.id).eq('grade_id', gradeId).eq('term_id', term.id)
     const ids = Object.keys(picked).filter((id) => picked[id])
     if (ids.length) {
+      if (!user?.id) {
+        setSaving(false)
+        return setError('Your session has no user id. Sign out and sign in again, then save.')
+      }
       const rows = ids.map((subject_id) => ({
         school_id: school.id,
         grade_id: gradeId,
         subject_id,
         term_id: term.id,
+        teacher_id: user?.id,
       }))
       const { error } = await supabase.from('subject_allocations').insert(rows)
-      if (error) { setSaving(false); return setError(error.message) }
+      if (error) {
+        setSaving(false)
+        return setError(
+          error.message.includes('teacher_id')
+            ? error.message + ' — Run SQL 25_v47_subject_teacher_optional.sql in Supabase if this persists.'
+            : error.message
+        )
+      }
     }
     setSaving(false)
     setOk(`Saved ${ids.length} subject(s) for this class.`)

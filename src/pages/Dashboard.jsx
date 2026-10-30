@@ -29,6 +29,7 @@ const Transport = lazy(() => import('../components/pages/Transport'))
 const BomPortal = lazy(() => import('../components/pages/BomPortal'))
 const RecordsVault = lazy(() => import('../components/pages/RecordsVault'))
 const StaffDesk = lazy(() => import('../components/pages/StaffDesk'))
+const Games = lazy(() => import('../components/pages/Games'))
 
 function PageFallback() {
   return (
@@ -45,6 +46,7 @@ export default function Dashboard({ session }) {
   const [school, setSchool] = useState(null)
   const [term, setTerm] = useState(null)
   const [page, setPage] = useState('dashboard')
+  const deskOnlyRoles = ['Kitchen', 'Watchman', 'Matron', 'Driver', 'Staff']
   const [menuOpen, setMenuOpen] = useState(false)
   const [theme, setThemeState] = useState(() => getTheme())
   const [lang, setLangState] = useState(() => getLang())
@@ -136,10 +138,14 @@ export default function Dashboard({ session }) {
   }
 
   const props = { school, user, term, onTermChange: setTerm, session }
+  const isDeskOnly = !!(user && deskOnlyRoles.includes(user.role) && !['Principal', 'Deputy Principal', 'Senior Teacher', 'Secretary', 'Teacher'].includes(user.role))
+  useEffect(() => {
+    if (isDeskOnly && page !== 'staff-desk') setPage('staff-desk')
+  }, [isDeskOnly, page])
 
   return (
     <div className={`min-h-screen flex bg-slate-50 sm-app-shell theme-root`} data-theme={theme}>
-      <Sidebar school={school} open={menuOpen} onClose={() => setMenuOpen(false)} page={page} onPage={go} role={user.role} />
+      <Sidebar school={school} user={user} open={menuOpen} onClose={() => setMenuOpen(false)} page={page} onPage={go} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar school={school} user={user} term={term} page={page} onLogout={logout} onMenu={() => setMenuOpen(true)} lang={lang} theme={theme} onTheme={changeTheme} onLang={changeLang} />
         <main className="flex-1 p-3 md:p-6 overflow-auto">
@@ -211,6 +217,11 @@ export default function Dashboard({ session }) {
             {page === 'staff-desk' && (
               <PremiumGate school={school} moduleName="staff-desk">
                 <StaffDesk {...props} />
+              </PremiumGate>
+            )}
+            {page === 'games' && (
+              <PremiumGate school={school} moduleName="games">
+                <Games {...props} />
               </PremiumGate>
             )}
           </Suspense>

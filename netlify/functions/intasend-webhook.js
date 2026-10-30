@@ -2,9 +2,9 @@
  * IntaSend webhook — challenge required for plan upgrades; prices must match STK.
  */
 
-const PLAN_DAYS = { basic: 120, premium: 120, trial: 90 }
-const PLAN_CAPS = { basic: 200, premium: 500, trial: 250 }
-const PLAN_PRICES = { basic: 2000, premium: 3500 }
+const PLAN_DAYS = { basic: 120, premium: 120, pro: 120, trial: 90 }
+const PLAN_CAPS = { basic: 200, premium: 500, pro: 1000, trial: 250 }
+const PLAN_PRICES = { basic: 2000, premium: 3500, pro: 5000 }
 const PLAN_STAFF = { basic: 25, premium: 50, trial: 30 }
 const PLAN_PARENT = { basic: 150, premium: 350, trial: 200 }
 

@@ -14,6 +14,7 @@ export default function PremiumGate({ school, moduleName, children }) {
   else if (moduleName === 'bom') ok = !!e.bom
   else if (moduleName === 'records') ok = !!e.records
   else if (moduleName === 'staff-desk') ok = !!e.staffDesk
+  else if (moduleName === 'games') ok = !!e.games
 
   if (ok) return children
 
@@ -22,7 +23,7 @@ export default function PremiumGate({ school, moduleName, children }) {
       <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Premium feature</p>
       <h2 className="text-2xl font-black text-slate-900">{moduleNameLabel(moduleName)}</h2>
       <p className="text-sm text-slate-700">
-        Included on <strong>Premium / Pro / Custom</strong> (and trial). Your school is on{' '}
+        Included on <strong>Premium or Pro</strong> (and trial) (and trial). Your school is on{' '}
         <strong>{(e.planId || 'basic').toUpperCase()}</strong>
         {e.expired ? ' (expired)' : ''}.
       </p>
@@ -45,6 +46,7 @@ function moduleNameLabel(id) {
     bom: 'BOM portal',
     records: 'Records vault',
     'staff-desk': 'Staff desk',
+    games: 'Games',
   }
   return map[id] || id
 }
