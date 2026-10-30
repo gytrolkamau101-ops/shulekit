@@ -69,26 +69,48 @@ export default function Dashboard({ session }) {
     setLoading(true)
     setError('')
     try {
-      const { data: u, error: ue } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle()
+      if (!session?.user?.id) {
+        setError('Session expired. Sign in again.')
+        return
+      }
+      const { data: u, error: ue } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle()
       if (ue) throw ue
       if (!u) {
-        setError('No staff profile found.')
-        setLoading(false)
+        setError('No staff profile found for this login. Ask the Principal to approve your account under School Setup → Staff.')
         return
       }
       setUser(u)
-      const [{ data: sch }, { data: terms }] = await Promise.all([
+      if (!u.school_id) {
+        setError('Your profile is not linked to a school yet.')
+        setSchool(null)
+        return
+      }
+      const [{ data: sch, error: se }, { data: terms, error: te }] = await Promise.all([
         supabase.from('schools').select('*').eq('id', u.school_id).maybeSingle(),
         supabase.from('terms').select('*').eq('school_id', u.school_id).order('year', { ascending: false }),
       ])
+      if (se) throw se
+      if (te) console.warn(te.message)
+      if (!sch) {
+        setError('School record not found. Contact Super Admin.')
+        setSchool(null)
+        return
+      }
       setSchool(sch)
-      const cur = (terms || []).find((t) => t.is_current) || (terms || [])[0] || null
+      const list = terms || []
+      const cur = list.find((t) => t.is_current) || list[0] || null
       setTerm(cur)
     } catch (e) {
-      setError(e?.message || 'Failed to load')
+      console.error(e)
+      setError(e?.message || 'Failed to load dashboard')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [session.user.id])
+  }, [session?.user?.id])
 
   useEffect(() => {
     load()
@@ -114,6 +136,16 @@ export default function Dashboard({ session }) {
     setMenuOpen(false)
   }
 
+  // Hooks must run every render — never after early returns (React #310)
+  const isDeskOnly = !!(
+    user &&
+    deskOnlyRoles.includes(user.role) &&
+    !['Principal', 'Deputy Principal', 'Senior Teacher', 'Secretary', 'Teacher'].includes(user.role)
+  )
+  useEffect(() => {
+    if (isDeskOnly && page !== 'staff-desk') setPage('staff-desk')
+  }, [isDeskOnly, page])
+
   if (loading) {
     return (
       <div className="min-h-screen sk-mesh-light flex flex-col items-center justify-center gap-3 sm-app-shell">
@@ -125,22 +157,24 @@ export default function Dashboard({ session }) {
 
   if (error || !user || !school) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md text-center space-y-3">
-          <p className="text-red-600 font-semibold">{error || 'School profile missing'}</p>
-          <button type="button" className={btn} onClick={logout}>
-            Logout
-          </button>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+        <div className="max-w-md w-full text-center space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-lg font-black text-slate-900">Could not open dashboard</p>
+          <p className="text-red-600 text-sm font-semibold">{error || 'School profile missing'}</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+            <button type="button" className={btn} onClick={() => load()}>
+              Try again
+            </button>
+            <button type="button" className={btn} onClick={logout}>
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
   const props = { school, user, term, onTermChange: setTerm, session }
-  const isDeskOnly = !!(user && deskOnlyRoles.includes(user.role) && !['Principal', 'Deputy Principal', 'Senior Teacher', 'Secretary', 'Teacher'].includes(user.role))
-  useEffect(() => {
-    if (isDeskOnly && page !== 'staff-desk') setPage('staff-desk')
-  }, [isDeskOnly, page])
 
   return (
     <div className={`min-h-screen flex bg-slate-50 sm-app-shell theme-root`} data-theme={theme}>
