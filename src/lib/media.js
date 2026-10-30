@@ -49,3 +49,31 @@ export function pickFileToDataUrl(file, { maxBytes = 2 * 1024 * 1024 } = {}) {
     reader.readAsDataURL(file)
   })
 }
+
+
+/** Shrink a data-URL image for platform_settings storage (max ~180KB target). */
+export async function compressDataUrl(dataUrl, { maxW = 480, quality = 0.62 } = {}) {
+  if (!dataUrl || !String(dataUrl).startsWith('data:image')) return dataUrl
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxW / (img.width || maxW))
+      const w = Math.max(1, Math.round((img.width || maxW) * scale))
+      const h = Math.max(1, Math.round((img.height || maxW) * scale))
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
+      let q = quality
+      let out = canvas.toDataURL('image/jpeg', q)
+      while (out.length > 180000 && q > 0.35) {
+        q -= 0.08
+        out = canvas.toDataURL('image/jpeg', q)
+      }
+      resolve(out)
+    }
+    img.onerror = () => reject(new Error('Could not compress image'))
+    img.src = dataUrl
+  })
+}

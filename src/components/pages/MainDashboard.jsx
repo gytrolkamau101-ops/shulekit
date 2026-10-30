@@ -77,9 +77,8 @@ export default function MainDashboard({ user, school, term, onNavigate, onPage, 
           .from('school_events')
           .select('*')
           .eq('school_id', school.id)
-          .gte('event_date', new Date().toISOString().slice(0, 10))
-          .order('event_date')
-          .limit(4)
+          .order('event_date', { ascending: true })
+          .limit(12)
 
         if (!alive) return
         const list = students || []

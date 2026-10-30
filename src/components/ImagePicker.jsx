@@ -49,8 +49,12 @@ export default function ImagePicker({
       {value ? (
         <div className="flex flex-wrap items-center gap-3">
           <img src={value} alt="" className={previewClass} />
-          <button type="button" className="text-xs font-bold text-red-500" onClick={() => onChange?.('')}>
-            Remove
+          <button
+            type="button"
+            className="text-xs font-bold text-red-500 underline"
+            onClick={() => onChange?.('')}
+          >
+            Remove custom image
           </button>
         </div>
       ) : (

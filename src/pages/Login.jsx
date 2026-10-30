@@ -161,7 +161,7 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
       setPayStep(null)
     } catch (e) {
       setError(
-        e?.message || 'STK could not start. If you see Invalid plan, set Super Admin → Pricing plan id to basic, premium or pro.'
+        e?.message || 'STK could not start. If you see Invalid plan, set Super Admin → Pricing plan id to basic or premium.'
       )
     }
     setPayBusy(false)
@@ -357,9 +357,14 @@ Basic includes core records and finance. Premium unlocks Messages, Attendance, T
       <div className="relative w-full max-w-md sk-animate-in">
         <div className="text-center mb-4">
           <img
-            src={theme.brand_logo_url || LOGO_C2}
+            src={
+              theme.brand_logo_url && String(theme.brand_logo_url).trim()
+                ? theme.brand_logo_url
+                : LOGO_C2
+            }
             alt={`${theme.brand_name || BRAND_NAME} — ${theme.product_line || PRODUCT_LINE}`}
-            className="mx-auto w-full max-w-md rounded-2xl shadow-2xl shadow-black/50 border border-white/15 object-contain bg-[#0a1628]"
+            className="mx-auto w-full max-w-[280px] max-h-[220px] md:max-h-[260px] rounded-2xl shadow-2xl shadow-black/50 border border-white/15 object-contain bg-black"
+            key={theme.brand_logo_url ? 'custom-logo' : 'default-logo'}
           />
           <p className="text-cyan-100/85 mt-3 text-[11px] font-semibold tracking-[0.14em] uppercase">
             {(theme.product_line || PRODUCT_LINE)}

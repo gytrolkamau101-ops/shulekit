@@ -47,12 +47,15 @@ export default function ReportCards({ school, term }) {
       const students = (enr || [])
         .map((e) => e.students)
         .filter((s) => s && (!s.status || s.status === 'Active' || s.status === 'Suspended'))
-      const { data: results } = await supabase
-        .from('exam_results')
-        .select('student_id, subject_id, marks_obtained, grade, subjects(subject_name)')
-        .eq('exam_id', examId)
-        .eq('school_id', school.id)
-      const subSet = new Set()
+      const [{ data: results }, { data: allSubs }] = await Promise.all([
+        supabase
+          .from('exam_results')
+          .select('student_id, subject_id, marks_obtained, grade, subjects(subject_name)')
+          .eq('exam_id', examId)
+          .eq('school_id', school.id),
+        supabase.from('subjects').select('subject_name').eq('school_id', school.id).order('subject_name'),
+      ])
+      const subSet = new Set((allSubs || []).map((s) => s.subject_name).filter(Boolean))
       const byStudent = {}
       students.forEach((s) => {
         byStudent[s.id] = { student: s, subjects: {}, total: 0, count: 0 }
@@ -100,7 +103,7 @@ export default function ReportCards({ school, term }) {
     const wm = watermark
       ? `<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0.07;font-size:72px;font-weight:900;transform:rotate(-30deg)">ShuleMoja</div>`
       : ''
-    const head = subjects.map((s) => `<th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">${s}</th>`).join('')
+    const head = subjects.map((s) => `<th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">${s}</th>`).join('')
     const body = rows
       .map((r) => {
         const cells = subjects
@@ -129,10 +132,10 @@ export default function ReportCards({ school, term }) {
       <div class="sub">${examName} · Term ${term?.term || ''} ${term?.year || ''}</div>
       <table>
         <thead><tr>
-          <th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">Adm</th>
-          <th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">Name</th>
+          <th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">Adm</th>
+          <th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">Name</th>
           ${head}
-          <th style="padding:6px;border:1px solid #cbd5e1;font-size:11px">Avg</th>
+          <th style="padding:3px 4px;border:1px solid #cbd5e1;font-size:9px;white-space:nowrap">Avg</th>
         </tr></thead>
         <tbody>${body}</tbody>
       </table>

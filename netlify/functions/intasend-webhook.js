@@ -2,17 +2,16 @@
  * IntaSend webhook — challenge required for plan upgrades; prices must match STK.
  */
 
-const PLAN_DAYS = { basic: 120, premium: 120, pro: 120, trial: 90 }
-const PLAN_CAPS = { basic: 200, premium: 500, pro: 1000, trial: 250 }
-const PLAN_PRICES = { basic: 2000, premium: 3500, pro: 5000 }
-const PLAN_STAFF = { basic: 25, premium: 50, pro: 80, trial: 30 }
-const PLAN_PARENT = { basic: 150, premium: 350, pro: 800, trial: 200 }
+const PLAN_DAYS = { basic: 120, premium: 120, trial: 90 }
+const PLAN_CAPS = { basic: 200, premium: 500, trial: 250 }
+const PLAN_PRICES = { basic: 2000, premium: 3500 }
+const PLAN_STAFF = { basic: 25, premium: 50, trial: 30 }
+const PLAN_PARENT = { basic: 150, premium: 350, trial: 200 }
 
 function resolvePlanId(raw) {
   const s = String(raw || '').toLowerCase().trim()
   if (PLAN_PRICES[s] != null) return s
-  if (s.includes('pro') && !s.includes('premium')) return 'pro'
-  if (s.includes('premium')) return 'premium'
+  if (s.includes('premium') || s.includes('pro') || s.includes('custom') || s === 'yearly') return 'premium'
   if (s.includes('basic') || s === 'termly') return 'basic'
   return null
 }

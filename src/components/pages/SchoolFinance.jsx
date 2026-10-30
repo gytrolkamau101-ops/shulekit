@@ -5,8 +5,8 @@ import { canEditFinance } from '../../lib/roles'
 
 const EXPENSE_TYPES = ['Electricity', 'Water', 'Staff Salary', 'Maintenance', 'Office Supplies', 'Transport', 'Other']
 
-export default function SchoolFinance({ school, term }) {
-  const canEdit = canEditFinance(user.role)
+export default function SchoolFinance({ school, term, user }) {
+  const canEdit = canEditFinance(user?.role)
   const [expenses, setExpenses] = useState([])
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { payAdminBillStk, intasendConfig } from '../lib/intasend'
 import { getSetting, saveSetting } from '../lib/platform'
+import { compressDataUrl } from '../lib/media'
 import { Card, Scroll, Alert, darkField, btn, btnGreen, th, td, toast, Spinner } from '../components/ui'
 import ImagePicker from '../components/ImagePicker'
 import { DEFAULT_PLANS } from '../lib/plans'
@@ -164,10 +165,37 @@ export default function SuperAdmin({ session }) {
     setSavingCms(true)
     setError('')
     try {
-      await saveSetting(key, value)
-      toast('Saved — live on login & platform', 'ok')
+      let payload = value
+      if (key === 'theme' && payload?.brand_logo_url && String(payload.brand_logo_url).startsWith('data:')) {
+        try {
+          payload = {
+            ...payload,
+            brand_logo_url: await compressDataUrl(payload.brand_logo_url, { maxW: 520, quality: 0.6 }),
+          }
+          setTheme(payload)
+        } catch (_) {
+          /* keep original */
+        }
+        if (String(payload.brand_logo_url).length > 900000) {
+          throw new Error(
+            'Logo still too large after compression. Use a smaller JPG (under 300KB) or paste a public image URL.'
+          )
+        }
+      }
+      await saveSetting(key, payload)
+      if (key === 'theme') {
+        toast(
+          payload?.brand_logo_url
+            ? 'Branding saved — custom login logo is live (refresh login)'
+            : 'Branding saved — using built-in default logo',
+          'ok'
+        )
+      } else {
+        toast('Saved — live on login & platform', 'ok')
+      }
     } catch (e) {
       setError(e.message)
+      toast(e.message || 'Save failed', 'error')
     }
     setSavingCms(false)
   }
@@ -534,12 +562,18 @@ export default function SuperAdmin({ session }) {
             <div className="mb-3">
               <ImagePicker
                 dark
-                label="Login brand image (gallery / camera)"
+                label="Login brand image — pick from gallery or camera"
                 value={theme.brand_logo_url || ''}
                 onChange={(url) => setTheme({ ...theme, brand_logo_url: url })}
-                maxW={900}
-                previewClass="h-24 max-w-full object-contain rounded-xl border border-slate-600 bg-slate-900"
+                maxW={520}
+                quality={0.62}
+                previewClass="h-24 object-contain rounded-lg border border-slate-600 bg-black"
+                showUrlField
               />
+              <p className="text-xs text-slate-400 mt-1">
+                After picking an image, you <strong className="text-white">must</strong> tap
+                &quot;Save theme &amp; branding&quot; below. Remove custom image + Save restores the built-in logo.
+              </p>
             </div>
 
             <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 space-y-3">
@@ -570,6 +604,11 @@ export default function SuperAdmin({ session }) {
               </label>
             </div>
 
+            <p className="text-xs text-amber-200/90 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+              <strong>How to change the login logo:</strong> use the image picker above (gallery/camera), then tap
+              <strong> Save theme &amp; branding</strong>. Refresh the login page. Prefer a tall image (phone + logo)
+              under ~400KB. If upload fails, the default file in <code>public/logo-c2.jpg</code> is used after deploy.
+            </p>
             <button type="button" disabled={savingCms} className={btnGreen} onClick={() => saveCms('theme', theme)}>
               Save theme &amp; branding for whole platform
             </button>

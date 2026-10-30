@@ -18,7 +18,7 @@ function gradeFor(pct, bands) {
 }
 
 export default function Exams({ school, user, term }) {
-  const canManageExams = ['Principal', 'Senior Teacher', 'Teacher'].includes(user.role)
+  const canManageExams = ['Principal', 'Deputy Principal', 'Senior Teacher', 'Teacher', 'Secretary'].includes(user?.role)
   const [exams, setExams] = useState([])
   const [grades, setGrades] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -252,6 +252,11 @@ export default function Exams({ school, user, term }) {
           Add grades and subjects in School Setup first, then come back here to enter marks.
         </Alert>
       ) : (
+        {exams.length === 0 && (
+          <Alert kind="ok">
+            No exams for this term yet. Tap <strong>+ Create exam</strong> (top right), name it (e.g. CAT 1), save, then enter marks.
+          </Alert>
+        )}
         <Card title="Enter / view marks">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
             <select className={input} value={selectedExam} onChange={(e) => setSelectedExam(e.target.value)}>

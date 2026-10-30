@@ -19,14 +19,14 @@ function functionsBase() {
 
 function stkUrl() {
   const base = functionsBase()
-  return base ? `${base}/.netlify/functions/intasend-stk` : '/.netlify/functions/intasend-stk'
+  // Prefer /api/stk alias (netlify.toml) — more reliable than long functions path on some hosts
+  return base ? `${base}/api/stk` : '/api/stk'
 }
 
 export function normalizePlanId(raw) {
   const s = String(raw || '').toLowerCase().trim()
-  if (['basic', 'premium', 'pro'].includes(s)) return s
-  if (s.includes('pro') && !s.includes('premium')) return 'pro'
-  if (s.includes('premium') || s.includes('yearly')) return 'premium'
+  if (s === 'basic' || s === 'premium') return s
+  if (s.includes('premium') || s.includes('pro') || s.includes('custom') || s.includes('yearly')) return 'premium'
   if (s.includes('basic') || s === 'termly' || s.includes('starter')) return 'basic'
   return s
 }
@@ -47,46 +47,71 @@ async function authHeader() {
 }
 
 async function postStk(body) {
-  let res
-  try {
-    res = await fetch(stkUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
-      body: JSON.stringify(body),
-    })
-  } catch (e) {
-    throw new Error(
-      'Network error calling STK function. On localhost, Netlify functions do not run — use the deployed site, or set VITE_FUNCTIONS_BASE to your Netlify URL.'
-    )
-  }
-
-  const text = await res.text()
-  let data = {}
-  try {
-    data = text ? JSON.parse(text) : {}
-  } catch {
-    // SPA HTML or plain text (common on localhost without functions)
-    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-      throw new Error(
-        'STK endpoint not found (got the website HTML instead of the function). Deploy to Netlify and test on the live URL, or set VITE_FUNCTIONS_BASE=https://YOUR-SITE.netlify.app'
+  const base = functionsBase()
+  const origin = base || (typeof window !== 'undefined' ? window.location.origin : '')
+  const urls = [
+    stkUrl(),
+    base ? `${base}/.netlify/functions/intasend-stk` : '/.netlify/functions/intasend-stk',
+  ]
+  // de-dupe
+  const tried = []
+  let lastErr = null
+  for (const url of urls) {
+    if (tried.includes(url)) continue
+    tried.push(url)
+    let res
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify(body),
+      })
+    } catch (e) {
+      lastErr = new Error(
+        'Network error calling STK. On localhost, Netlify functions do not run — use the live site or set VITE_FUNCTIONS_BASE.'
       )
+      continue
     }
-    throw new Error(text.slice(0, 200) || `STK failed (HTTP ${res.status})`)
+    const text = await res.text()
+    let data = {}
+    try {
+      data = text ? JSON.parse(text) : {}
+    } catch {
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        lastErr = new Error(
+          'STK got HTML instead of the function (404/SPA). Open ' + origin + '/api/stk — need JSON. Deploy latest and use live Netlify URL.'
+        )
+        continue
+      }
+      lastErr = new Error(text.slice(0, 200) || `STK failed (HTTP ${res.status})`)
+      continue
+    }
+    if (res.status === 404) {
+      lastErr = new Error('STK 404 at ' + url)
+      continue
+    }
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `STK failed (HTTP ${res.status})`)
+    }
+    return data
   }
-
-  if (!res.ok) {
-    throw new Error(data.error || data.message || `STK failed (HTTP ${res.status})`)
-  }
-  return data
+  throw lastErr || new Error('STK failed (HTTP 404): function not found on this host')
 }
 
 /** Platform plan subscribe — server sets amount from plan_id */
-export async function payPlatformPlan({ planId, phone, email }) {
+export async function payPlatformPlan({ planId, planName, phone, email }) {
   const ph = normalizeKePhone(phone)
   if (!ph) throw new Error('Enter a valid M-Pesa number (07XXXXXXXX or 2547XXXXXXXX)')
+  const resolved = normalizePlanId(planId) || normalizePlanId(planName)
+  if (!['basic', 'premium'].includes(resolved)) {
+    throw new Error(
+      'Invalid plan "' + (planId || planName || '') + '". Use Basic or Premium (termly). Super Admin → Pricing: id must be basic or premium.'
+    )
+  }
   return postStk({
     kind: 'platform_subscribe',
-    plan_id: normalizePlanId(planId),
+    plan_id: resolved,
+    plan_name: planName || planId,
     phone_number: ph,
     email,
   })

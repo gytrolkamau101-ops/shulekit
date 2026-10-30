@@ -6,17 +6,14 @@
 const PLAN_PRICES = {
   basic: 2000,
   premium: 3500,
-  pro: 5000,
 }
 
 /** Map CMS names/ids → canonical plan */
 function resolvePlanId(raw) {
   const s = String(raw || '').toLowerCase().trim()
   if (PLAN_PRICES[s]) return s
-  if (s.includes('pro') && !s.includes('premium')) return 'pro'
-  if (s.includes('premium') || s.includes('termly premium') || s === 'yearly' || s === 'termly_premium') return 'premium'
-  if (s.includes('basic') || s === 'termly' || s === 'starter') return 'basic'
-  if (s.includes('custom')) return null // contact sales
+  if (s.includes('premium') || s.includes('pro') || s.includes('custom') || s === 'yearly') return 'premium'
+  if (s.includes('basic') || s === 'termly' || s.includes('starter')) return 'basic'
   return null
 }
 
@@ -104,6 +101,22 @@ export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: cors(), body: '' }
   }
+  if (event.httpMethod === 'GET') {
+    const secret = (process.env.INTASEND_SECRET_KEY || '').trim()
+    const live = String(process.env.INTASEND_LIVE || process.env.VITE_INTASEND_LIVE || 'false').toLowerCase() === 'true'
+    return {
+      statusCode: 200,
+      headers: cors(),
+      body: JSON.stringify({
+        ok: true,
+        service: 'intasend-stk',
+        secret_configured: !!secret,
+        secret_mode: secret.includes('_test_') ? 'test' : secret.includes('_live_') ? 'live' : secret ? 'unknown' : 'missing',
+        live_flag: live,
+        plans: ['basic', 'premium'],
+      }),
+    }
+  }
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: cors(), body: JSON.stringify({ error: 'POST only' }) }
   }
@@ -155,7 +168,7 @@ export async function handler(event) {
         headers: cors(),
         body: JSON.stringify({
           error:
-            'Invalid plan. Use plan id basic, premium, or pro (or a name containing those words). Super Admin → Pricing → set id to premium for Termly Premium.',
+            'Invalid plan. Use plan id basic or premium (termly) (or a name containing those words). Super Admin → Pricing → set id to premium for Termly Premium.',
         }),
       }
     }

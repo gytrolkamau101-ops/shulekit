@@ -5,6 +5,20 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# Explicit API aliases (avoid SPA catch-all shadowing)
+[[redirects]]
+  from = "/api/stk"
+  to = "/.netlify/functions/intasend-stk"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/webhook"
+  to = "/.netlify/functions/intasend-webhook"
+  status = 200
+  force = true
+
+# SPA fallback — do NOT use force=true here (lets functions win)
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -12,3 +26,4 @@
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
